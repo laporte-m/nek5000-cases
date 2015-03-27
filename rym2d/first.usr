@@ -1,0 +1,273 @@
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      n		= 0.7868	! power law index
+      la = 0.3217
+      
+      nre = 100.0	! Reynolds number
+      
+      !write(*,*) "after assignment, n =", n
+      
+      tsc = (2.0/3600.0)/((0.06**3.0)*0.25) 	
+      !tsc   = (2.0/3600.0)/((0.06**3.0)*0.25) 		
+      ! (mm^3/s)/(diameter*diameter^2*velocity) = sec/sim. time
+      lsc   = 60.0			! um/sim. length
+      
+      chanm = 0.0
+	    RR = 0.5
+	    Q = 1.0
+	  
+	    udiffi=27.0
+      !udiffz=(2.**(3.-2.*n))*(RR**(3.*n-4.))*((Q/pii)**(2.-n))/nre
+      udiffz=0.02504*27.0/0.001
+      udiffb=1315.0
+      th = 0.5236
+      uml=0.25d0
+      umu=1.0d0
+      !write(*,*) "udiffz = ", udiffz
+      !read(*,*)
+	  
+	    ifuservp = .true.   
+      param(30) = 1.
+      param(66) = 0.
+      param(67) = 0.
+	  
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      use mldat
+      
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      integer ieg
+      !integer iel = gllel(ieg)
+      
+      if (ifield.eq.1) then
+      if(istep.le.1) then
+
+        udiff = udiffz
+        
+      else
+
+        !write(*,*) shvis(ix,iy,iz,iel,gllnid(ieg))
+          udiffn1 = udiffz*shvis(ix,iy,iz,gllel(ieg))
+          udiffn2 = udiffi
+          
+          plc0 = (udiffn1-udiffn2)*(temp-udiffi)/(udiffz-udiffi) 
+          if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
+          ! linear interpolation between udiffnn1 and udiffnn2
+          ! based on "temp" due to "heat" (viscosity) diffusion
+	      plc=udiffn2+plc0
+!	      if (plc.le.0.0) then
+!	        write(*,*) "??? shvis =",shvis(ix,iy,iz,eg)
+!	        write(*,*) "    temp  =",temp
+!	      endif
+	      
+!	      if (plc .gt. 0.0) then
+	        udiff = plc
+		
+      endif
+      
+      utrans = param(1)
+      else
+        udiff = 1.0E-04
+        utrans=param(7)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      real gc
+      real, allocatable, dimension(:,:,:,:) :: gamma	  
+
+      ! strain rate invariants
+      common /screv/ ei2(lx1,ly1,lz1,lelt)
+     $             , ei3(lx1,ly1,lz1,lelt)
+      
+      if (allocated(shvis)) deallocate(shvis)
+      allocate( gamma  (lx1, ly1, lz1, lelt) )   
+      allocate( shvis  (lx1, ly1, lz1, lelt) )
+         
+      ntot1  = nx1*ny1*nz1*nelv
+      
+      ! calculate strain rate components
+      call stnrinv
+
+      do ieg= 1, nelgt
+      if (gllnid(ieg).eq.nid) then
+        iel = gllel(ieg)
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+            
+              !shear rate
+			        gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
+			  
+              gc = gamma(i,j,k,iel)
+              if (gc.lt.gm .and. gc .gt. 0.0) then
+                gm = gc
+              end if
+              
+            end do
+           end do
+          end do
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+              
+              ! eliminate shear rate .le. 0.0
+              if (gamma(i,j,k,iel) .lt. gm) then
+                gamma(i,j,k,iel) = gm
+              end if
+              
+              ! variable part of viscosity
+              ! tsc converts gamma from sim 1/time to 1/s
+	          ! shvis in Pa s
+              shvis(i,j,k,iel)=(gamma(i,j,k,iel)/tsc)**(n-1.0)
+              if (shvis(i,j,k,iel) .le. 0.0) then
+               write(89,*) shvis(i,j,k,iel)
+              end if
+            end do
+           end do
+          end do
+           
+      end if
+      end do
+      
+      gm = 1e38
+      
+      if (mod(istep,iostep).eq.0) then 
+        ! output shear rate and variable component of viscosity
+        call outpost(vx,gamma,vz,pr,t,'shr')
+      endif  
+      deallocate(gamma)
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      if (Y.GT.0.0) then
+	      wo = 1.5*umu
+        y0 = 23.0+ RR
+        upro = (1.0-(abs(y-y0)/RR)**2)
+        ydir = -1.0
+      else
+        wo = ((1.0+2.0*n)/(1.0+n))*uml
+        y0 = -24.0 + RR
+        upro = (1.0-(abs(y-y0)/RR)**(1.0+1.0/n))
+        ydir = 1.0
+      endif
+      
+      ux = wo*upro*cos(th)
+      uy = wo*ydir*upro*sin(th)
+      uz = 0.0
+
+      if (Y.GT.0.0) then
+        temp=udiffi
+      else
+        temp=udiffz
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      if (Y.GT.0.0) then
+	      wo = 1.5*umu
+        y0 = 23.0+ RR
+        upro = (1.0-(abs(y-y0)/RR)**2)
+        !write(*,*) "upro = ",upro
+        ydir = -1.0
+      else
+        wo = ((1.0+2.0*n)/(1.0+n))*uml
+        y0 = -24.0 + RR
+        upro = (1.0-(abs(y-y0)/RR)**(1.0+1.0/n))
+        ydir = 1.0
+      endif
+      
+      if (x .lt. -30.0) then
+        ux = wo*cos(th)
+        uy = wo*ydir*sin(th)
+      else
+        ux = wo
+        uy = 0.0
+      endif
+      
+      uz = 0.0
+
+      if (Y.GT.0.0) then
+        temp=udiffi
+      else
+        temp=udiffz
+      endif
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+c
+	  !write(*,*) "n =", n
+      return
+      end
+c-----------------------------------------------------------------------
