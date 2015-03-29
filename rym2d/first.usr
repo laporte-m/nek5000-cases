@@ -4,33 +4,30 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
-      n		= 0.7868	! power law index
-      la = 0.3217
+      ! ~~~~~ FLUID MODEL ~~~~~
+      n = 0.7859	    ! power law index
+      !la = 0.3217      ! Carreau relaxation factor
       
-      nre = 100.0	! Reynolds number
+      udiffi=4628.0
+      udiffz=31550.0
+      !udiffb=1315.0     
       
-      !write(*,*) "after assignment, n =", n
+      ! ~~~~~ DIMENSIONALITY ~~~~~
+      !nre = 100.0	    ! Reynolds number
+      tsc = 385.8       ! time scaling, sim time units/s
+      lsc = 1.0 		! length scaling, sim length units/um
       
-      tsc = (2.0/3600.0)/((0.06**3.0)*0.25) 	
-      !tsc   = (2.0/3600.0)/((0.06**3.0)*0.25) 		
-      ! (mm^3/s)/(diameter*diameter^2*velocity) = sec/sim. time
-      lsc   = 60.0			! um/sim. length
+      ! ~~~~~ GEOMETRY ~~~~~
+      !chanm = 0.0      ! middle of the channel
+      RR = 0.5          ! radius/half-width of each branch
+      th = 0.5236       ! branching angle
       
-      chanm = 0.0
-	    RR = 0.5
-	    Q = 1.0
-	  
-	    udiffi=27.0
-      !udiffz=(2.**(3.-2.*n))*(RR**(3.*n-4.))*((Q/pii)**(2.-n))/nre
-      udiffz=0.02504*27.0/0.001
-      udiffb=1315.0
-      th = 0.5236
-      uml=0.25d0
-      umu=1.0d0
-      !write(*,*) "udiffz = ", udiffz
-      !read(*,*)
-	  
-	    ifuservp = .true.   
+      Q = 1.0           ! volumetric flow rate
+      uml=1.0d0         ! average velocity in lower branch
+      umu=1.0d0         ! average velocity in upper branch
+
+	  ! ~~~~~ FLAGS ~~~~~
+      ifuservp = .true.   
       param(30) = 1.
       param(66) = 0.
       param(67) = 0.
@@ -55,7 +52,6 @@ c-----------------------------------------------------------------------
         
       else
 
-        !write(*,*) shvis(ix,iy,iz,iel,gllnid(ieg))
           udiffn1 = udiffz*shvis(ix,iy,iz,gllel(ieg))
           udiffn2 = udiffi
           
@@ -134,9 +130,8 @@ c-----------------------------------------------------------------------
               end if
               
               ! variable part of viscosity
-              ! tsc converts gamma from sim 1/time to 1/s
-	          ! shvis in Pa s
-              shvis(i,j,k,iel)=(gamma(i,j,k,iel)/tsc)**(n-1.0)
+              shvis(i,j,k,iel)=(gamma(i,j,k,iel))**(n-1.0)
+              
               if (shvis(i,j,k,iel) .le. 0.0) then
                write(89,*) shvis(i,j,k,iel)
               end if
