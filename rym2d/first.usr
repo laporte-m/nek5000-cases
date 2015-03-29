@@ -4,20 +4,20 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
-      ! ~~~~~ FLUID MODEL ~~~~~
+      ! ~~~~~ fluid model ~~~~~~~~
       n = 0.7859	    ! power law index
       !la = 0.3217      ! Carreau relaxation factor
       
-      udiffi=4628.0
-      udiffz=31550.0
-      !udiffb=1315.0     
+      udiffi = 4628.0
+      udiffz = 31550.0
+      !udiffb = 1315.0     
       
-      ! ~~~~~ DIMENSIONALITY ~~~~~
+      ! ~~~~~ dimensionality ~~~~~
       !nre = 100.0	    ! Reynolds number
       tsc = 385.8       ! time scaling, sim time units/s
       lsc = 1.0 		! length scaling, sim length units/um
       
-      ! ~~~~~ GEOMETRY ~~~~~
+      ! ~~~~~ geometry ~~~~~~~~~~~
       !chanm = 0.0      ! middle of the channel
       RR = 0.5          ! radius/half-width of each branch
       th = 0.5236       ! branching angle
@@ -26,7 +26,7 @@ c-----------------------------------------------------------------------
       uml=1.0d0         ! average velocity in lower branch
       umu=1.0d0         ! average velocity in upper branch
 
-	  ! ~~~~~ FLAGS ~~~~~
+	  ! ~~~~~ flags ~~~~~~~~~~~~~~
       ifuservp = .true.   
       param(30) = 1.
       param(66) = 0.
