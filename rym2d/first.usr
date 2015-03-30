@@ -5,11 +5,11 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       
       ! ~~~~~ fluid model ~~~~~~~~
-      n = 0.7859	    ! power law index
+      n = 0.5355	    ! power law index
       !la = 0.3217      ! Carreau relaxation factor
       
       udiffi = 4628.0
-      udiffz = 31550.0
+      udiffz = 4.52E5
       !udiffb = 1315.0     
       
       ! ~~~~~ dimensionality ~~~~~
@@ -26,11 +26,14 @@ c-----------------------------------------------------------------------
       uml=1.0d0         ! average velocity in lower branch
       umu=1.0d0         ! average velocity in upper branch
 
-	  ! ~~~~~ flags ~~~~~~~~~~~~~~
-      ifuservp = .true.   
-      param(30) = 1.
-      param(66) = 0.
-      param(67) = 0.
+	  ! ~~~~~ flags ~~~~~~~~~~~~~~  
+      param(1) = 1.0    ! density    
+      !param(2) = 1.0    ! constant viscosity
+      !param(7) = 1.0    ! constant heat capacity
+      
+      param(30) = 1.    ! enable uservp()
+      param(66) = 0.    ! output format (<0 = ASCII)
+      param(67) = 0.    ! restart format 
 	  
       return
       end
@@ -55,18 +58,12 @@ c-----------------------------------------------------------------------
           udiffn1 = udiffz*shvis(ix,iy,iz,gllel(ieg))
           udiffn2 = udiffi
           
-          plc0 = (udiffn1-udiffn2)*(temp-udiffi)/(udiffz-udiffi) 
-          if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
           ! linear interpolation between udiffnn1 and udiffnn2
-          ! based on "temp" due to "heat" (viscosity) diffusion
+          plc0 = (udiffn1-udiffn2)*(temp-udiffi)/(udiffz-udiffi) 
+          ! do not allow non-positive viscosity          
+          if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
 	      plc=udiffn2+plc0
-!	      if (plc.le.0.0) then
-!	        write(*,*) "??? shvis =",shvis(ix,iy,iz,eg)
-!	        write(*,*) "    temp  =",temp
-!	      endif
-	      
-!	      if (plc .gt. 0.0) then
-	        udiff = plc
+          udiff = plc
 		
       endif
       
@@ -262,7 +259,6 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 c
-	  !write(*,*) "n =", n
       return
       end
 c-----------------------------------------------------------------------
