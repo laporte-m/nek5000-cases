@@ -28,7 +28,7 @@ c-----------------------------------------------------------------------
 
 	  ! ~~~~~ flags ~~~~~~~~~~~~~~  
       param(1) = 1.0    ! density    
-      !param(2) = 1.0    ! constant viscosity
+      !param(2) = 1.0    ! constant viscosity 
       !param(7) = 1.0    ! constant heat capacity
       
       param(30) = 1.    ! enable uservp()
