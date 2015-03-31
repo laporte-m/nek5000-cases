@@ -587,7 +587,7 @@ The length scaling factor is
 \begin_inset Formula 
 \begin{align*}
 \mathcal{T} & =\frac{\left(\nicefrac{Q}{a^{2}}\right)_{phys}}{\bar{u}_{sim}}\mathcal{L}\\
- & =\frac{\left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(2.778\times10^{5}\si{\micro\metre\cubed\per\second}\si{\hour\per\micro\litre}\right)}{\unit[60.0]{\si{\micro\metre}}}\left(\frac{\unit[1.0]{\unitfrac{\mathbb{L}}{\si{\micro\metre}}}}{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}\right)\\
+ & =\frac{\left\{ \left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(2.778\times10^{5}\si{\micro\metre\cubed\per\second}\si{\hour\per\micro\litre}\right)/\left(\unit[60.0]{\si{\micro\meter}}\right)^{2}\right\} }{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}\left(\unit[1.0]{\unitfrac{\mathbb{L}}{\si{\micro\metre}}}\right)\\
  & =\unit[385.8]{\unitfrac{\mathbb{T}}{s}}
 \end{align*}
 
@@ -596,7 +596,7 @@ The length scaling factor is
 
 \end_layout
 
-\begin_layout Paragraph*
+\begin_layout Subsubsection*
 Branch 1 (Newtonian -- Water)
 \end_layout
 
@@ -613,7 +613,7 @@ The upper channel contains water flowing at
 .
 \begin_inset Formula 
 \begin{align*}
-Re & =\frac{\rho Q}{\mu a}\\
+Re & =\left(\frac{\rho Q}{\mu a}\right)_{phys}\\
  & =\frac{\left(\unit[997]{\si{\kilogram\per\meter\cubed}}\right)\left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(\unit[2.778\times10^{-13}]{\si{\hour\per\micro\litre}\si{\metre\cubed\per\second}}\right)}{\left(\unit[8.9\times10^{-4}]{\si{\pascal\second}}\right)\left(\unit[6.0\times10^{-5}]{\si{\micro\meter}}\right)}\\
  & =0.02593\approx0.026
 \end{align*}
@@ -630,7 +630,7 @@ In the simulated planar case, this corresponds to a viscosity of:
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\mu_{sim} & =\frac{\rho\left(2a\right)\bar{u}}{Re}\\
+\mu_{s} & =\frac{\rho\left(2a\right)\bar{u}}{Re}\\
  & =\frac{\left(\unit[1.0]{\unitfrac{\mathbb{M}}{\mathbb{L}^{3}}}\right)\left(\unit[2\cdot60.0]{\mathbb{L}}\right)\left(\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}\right)}{0.02593}\\
  & =\unit[\num{4628}]{\unitfrac{\mathbb{M}}{\mathbb{L}\mathbb{T}}}
 \end{align*}
@@ -667,7 +667,7 @@ The second branch contains Polyox WSR-301 flowing at
  The density is assumed to be the same as for water.
  The power-law model parameters for the 0.3% Polyox solution were estimated
  experimentally as 
-\begin_inset Formula $K=\unit[0.02519]{\si{\pascal\second}}$
+\begin_inset Formula $K=K_{p}=\unit[0.02519]{\si{\pascal\second}}$
 \end_inset
 
  and 
@@ -678,7 +678,7 @@ The second branch contains Polyox WSR-301 flowing at
 \begin_inset Formula 
 \begin{align*}
 Re & =\frac{\rho Q^{2-n}}{8^{n-1}Ka^{4-3n}}\\
- & =\frac{\left(\unit[997]{\si{\kilogram\per\meter\cubed}}\right)\left\{ \left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(\unit[2.778\times10^{-13}]{\si{\hour\per\micro\litre}\si{\metre\cubed\per\second}}\right)\right\} ^{2-0.7859}}{8^{0.7859-1}\left(\unit[0.02519]{\si{\pascal\second}}\right)\left(\unit[6.0\times10^{-5}]{\si{\micro\meter}}\right)^{4-3\left(0.7859\right)}}\\
+ & =\frac{\left(\unit[997]{\si{\kilogram\per\meter\cubed}}\right)\left\{ \left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(\unit[2.778\times10^{-13}]{\si{\hour\per\micro\litre}\si{\metre\cubed\per\second}}\right)\right\} ^{2-0.7859}}{8^{0.7859-1}\left(\unit[0.02519]{\si{\pascal\second}}\right)\left(\unit[6.0\times10^{-5}]{\si{\meter}}\right)^{4-3\left(0.7859\right)}}\\
  & =\num{2.13e-3}
 \end{align*}
 
@@ -692,9 +692,8 @@ Re & =\frac{\rho Q^{2-n}}{8^{n-1}Ka^{4-3n}}\\
 
 \begin_inset Formula 
 \begin{align*}
-K_{sim} & =\frac{\rho2^{3-2n}a^{n}\bar{u}^{2-n}}{Re}\\
- & =\frac{\left(\unit[1.0]{\unitfrac{\mathbb{M}}{\mathbb{L}^{3}}}\right)2^{3-2\left(0.7859\right)}\left(\unit[2\cdot60.0]{\mathbb{L}}\right)^{0.7859}\left(\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}\right)^{2-0.7859}}{\num{2.13e-3}}\\
- & =\unit[\num{31550}]{\unitfrac{\mathbb{M}}{\mathbb{L}\mathbb{T}^{2-0.7859}}}
+K_{s} & =\frac{\left(\rho2^{3-2n}a^{n}\bar{u}^{2-n}\right)_{s}}{Re}=\left\{ \frac{\left(2a_{s}\right)^{n}}{a_{p}^{3n-4}}\left(\frac{\rho_{s}}{\rho_{p}}\right)\left(\frac{\bar{u}_{s}}{Q_{p}}\right)^{2-n}\right\} K_{p}\\
+ & =\left\{ \frac{\left(2\cdot\unit[60.0]{\mathbb{L}}\right)^{n}}{\left(\unit[6.0\times10^{-5}]{m}\right)^{3n-4}}\left(\frac{\unit[1.0]{\unitfrac{\mathbb{M}}{\mathbb{L}^{3}}}}{\unit[997]{\si{\kilogram\per\meter\cubed}}}\right)\left(\frac{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}{\unit[\left(5.0\right)\left(\num{2.78e-13}\right)]{\si{\metre\cubed\per\second}}}\right)^{2-n}\right\} K_{p}\\
 \end{align*}
 
 \end_inset
@@ -716,7 +715,12 @@ Note that the power law model always retains proper dimensions for viscosity:
 \end_layout
 
 \begin_layout Standard
-For the 1.0% Polyox solution, the power-law parameters are 
+For the 0.3% Polyox solution, 
+\begin_inset Formula $K_{s}=\unit[\num{3.15e4}]{\unitfrac{\mathbb{M}}{\mathbb{L}\mathbb{T}^{2-0.7859}}}$
+\end_inset
+
+.
+ For the 1.0% Polyox solution, the power-law parameters are 
 \begin_inset Formula $K=\unit[1.316]{\si{\pascal\second}}$
 \end_inset
 
@@ -729,7 +733,7 @@ For the 1.0% Polyox solution, the power-law parameters are
 \end_inset
 
  and 
-\begin_inset Formula $K_{sim}=\num{4.52e5}$
+\begin_inset Formula $K_{s}=\unit[\num{3.12e5}]{\unitfrac{\mathbb{M}}{\mathbb{L}\mathbb{T}^{2-0.5355}}}$
 \end_inset
 
 .
