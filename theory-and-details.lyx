@@ -5,6 +5,7 @@
 \textclass report
 \begin_preamble
 \usepackage{siunitx}
+\usepackage{bm}
 \usepackage{multicol}
 \renewcommand{\tableofcontents}[1][\contentsname]{%
   \@starttoc{toc}
@@ -171,13 +172,10 @@ where
  is the pressure drop along the flow.
  The volumetric flow rate is determined by integration between the plates
  across a unit of depth.
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 Q & =1\cdot\intop_{-\nicefrac{a}{2}}^{\nicefrac{a}{2}}u\left(y\right)dy\\
- & =\frac{a}{2+1/n}\left(\frac{dP}{dL}\frac{1}{K}\right)^{\nicefrac{1}{n}}\left(\frac{a}{2}\right)^{1+1/n}\\
+ & =\frac{a}{2+1/n}\left(\frac{dP}{dL}\frac{1}{K}\right)^{\nicefrac{1}{n}}\left(\frac{a}{2}\right)^{1+1/n}
 \end{align*}
 
 \end_inset
@@ -239,13 +237,10 @@ The average velocity
 \end_inset
 
  is
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 \bar{u}=\frac{Q}{1\cdot a} & =\frac{1}{2+1/n}\left(\frac{dP}{dL}\frac{1}{K}\right)^{\nicefrac{1}{n}}\left(\frac{a}{2}\right)^{1+1/n}\\
- & =\left(\frac{1+1/n}{2+1/n}\right)u_{m}\\
+ & =\left(\frac{1+1/n}{2+1/n}\right)u_{m}
 \end{align*}
 
 \end_inset
@@ -264,13 +259,10 @@ For infinite parallel plates, the characteristic length is
 
  is the distance between the plates, so the generalized Reynolds number
  has the form
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 Re & =\frac{\rho\left(2a\right)^{n}\bar{u}^{2-n}}{\left(2^{3}\right)^{n-1}K}=\frac{\rho2^{3-2n}a^{n}\bar{u}^{2-n}}{K}\\
- & =\frac{\rho2^{3-2n}\left(Q/a\cdot1\right)^{2-n}}{K}=\frac{\rho2^{3-2n}Q^{2-n}}{Ka^{2-2n}}\\
+ & =\frac{\rho2^{3-2n}\left(Q/a\cdot1\right)^{2-n}}{K}=\frac{\rho2^{3-2n}Q^{2-n}}{Ka^{2-2n}}
 \end{align*}
 
 \end_inset
@@ -316,13 +308,10 @@ u\left(r\right)=\frac{1}{1+1/n}\left(\frac{1}{2}\frac{dP}{dL}\frac{1}{K}\right)^
 \end_inset
 
 The volumetric flow rate is determined by integration over all radiuses:
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 Q & =\intop_{0}^{R}2\pi r\cdot u\left(r\right)dr\\
- & =\frac{\pi}{3+1/n}\left(\frac{1}{2}\frac{dP}{dL}\frac{1}{K}\right)^{\nicefrac{1}{n}}R^{3+1/n}\\
+ & =\frac{\pi}{3+1/n}\left(\frac{1}{2}\frac{dP}{dL}\frac{1}{K}\right)^{\nicefrac{1}{n}}R^{3+1/n}
 \end{align*}
 
 \end_inset
@@ -369,13 +358,10 @@ The characteristic length is
 \end_inset
 
 , so the generalized Reynolds number is
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 Re & =\frac{\rho\left(2R\right)^{n}\bar{u}^{2-n}}{\left(2^{3}\right)^{n-1}K}=\frac{\rho2^{3-2n}R^{n}\bar{u}^{2-n}}{K}\\
- & =\frac{\rho2^{3-2n}R^{n}\left(\nicefrac{Q}{\pi R^{2}}\right)^{2-n}}{K}=\frac{\rho2^{3-2n}R^{3n-4}\left(Q/\pi\right)^{2-n}}{K}\\
+ & =\frac{\rho2^{3-2n}R^{n}\left(\nicefrac{Q}{\pi R^{2}}\right)^{2-n}}{K}=\frac{\rho2^{3-2n}R^{3n-4}\left(Q/\pi\right)^{2-n}}{K}
 \end{align*}
 
 \end_inset
@@ -413,13 +399,10 @@ square channel
 \end_inset
 
 .
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 Re & =\frac{\rho a^{n}\bar{u}^{2-n}}{8^{n-1}K}\\
- & =\frac{\rho a^{n}\left(\nicefrac{Q}{a^{2}}\right)^{2-n}}{8^{n-1}K}=\frac{\rho Q^{2-n}}{8^{n-1}Ka^{4-3n}}\\
+ & =\frac{\rho a^{n}\left(\nicefrac{Q}{a^{2}}\right)^{2-n}}{8^{n-1}K}=\frac{\rho Q^{2-n}}{8^{n-1}Ka^{4-3n}}
 \end{align*}
 
 \end_inset
@@ -429,9 +412,6 @@ Re & =\frac{\rho a^{n}\bar{u}^{2-n}}{8^{n-1}K}\\
 
 \begin_layout Standard
 For a Newtonian fluid,
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \[
 Re=\frac{\rho Q}{\mu a}
@@ -521,7 +501,7 @@ Each branch has a square cross-section, with side length
 \end_inset
 
 .
- Simulation units for length, time, and mass are given as 
+ Simulation units for length, time, and mass are written as 
 \begin_inset Formula $\mathbb{L}$
 \end_inset
 
@@ -541,7 +521,7 @@ Scaling factors
 \end_layout
 
 \begin_layout Standard
-The length scaling factor is
+The length scaling factor is a simple ratio:
 \begin_inset Formula 
 \[
 \mathcal{L}=\frac{\unit[60.0]{\mathbb{L}}}{\unit[60.0]{\si{\micro\metre}}}=\unit[1.0]{\unitfrac{\mathbb{L}}{\si{\micro\metre}}}
@@ -569,31 +549,6 @@ The time scaling factor can be determined from the simulation and physical
 
 \begin_layout Subsection
 2D (Planar) Simulations
-\end_layout
-
-\begin_layout Standard
-The length scaling factor is
-\begin_inset Formula 
-\[
-\mathcal{L}=\frac{\unit[60.0]{\mathbb{L}}}{\unit[60.0]{\si{\micro\metre}}}=\unit[1.0]{\unitfrac{\mathbb{L}}{\si{\micro\metre}}}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\mathcal{T} & =\frac{\left(\nicefrac{Q}{a^{2}}\right)_{phys}}{\bar{u}_{sim}}\mathcal{L}\\
- & =\frac{\left\{ \left(\unit[5.0]{\si{\micro\litre\per\hour}}\right)\left(2.778\times10^{5}\si{\micro\metre\cubed\per\second}\si{\hour\per\micro\litre}\right)/\left(\unit[60.0]{\si{\micro\meter}}\right)^{2}\right\} }{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}\left(\unit[1.0]{\unitfrac{\mathbb{L}}{\si{\micro\metre}}}\right)\\
- & =\unit[385.8]{\unitfrac{\mathbb{T}}{s}}
-\end{align*}
-
-\end_inset
-
-
 \end_layout
 
 \begin_layout Subsubsection*
@@ -625,9 +580,6 @@ Re & =\left(\frac{\rho Q}{\mu a}\right)_{phys}\\
 
 \begin_layout Standard
 In the simulated planar case, this corresponds to a viscosity of:
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
 \mu_{s} & =\frac{\rho\left(2a\right)\bar{u}}{Re}\\
@@ -667,7 +619,7 @@ The second branch contains Polyox WSR-301 flowing at
  The density is assumed to be the same as for water.
  The power-law model parameters for the 0.3% Polyox solution were estimated
  experimentally as 
-\begin_inset Formula $K=K_{p}=\unit[0.02519]{\si{\pascal\second}}$
+\begin_inset Formula $K_{p}=\unit[0.02519]{\si{\pascal\second}}$
 \end_inset
 
  and 
@@ -692,8 +644,19 @@ Re & =\frac{\rho Q^{2-n}}{8^{n-1}Ka^{4-3n}}\\
 
 \begin_inset Formula 
 \begin{align*}
-K_{s} & =\frac{\left(\rho2^{3-2n}a^{n}\bar{u}^{2-n}\right)_{s}}{Re}=\left\{ \frac{\left(2a_{s}\right)^{n}}{a_{p}^{3n-4}}\left(\frac{\rho_{s}}{\rho_{p}}\right)\left(\frac{\bar{u}_{s}}{Q_{p}}\right)^{2-n}\right\} K_{p}\\
- & =\left\{ \frac{\left(2\cdot\unit[60.0]{\mathbb{L}}\right)^{n}}{\left(\unit[6.0\times10^{-5}]{m}\right)^{3n-4}}\left(\frac{\unit[1.0]{\unitfrac{\mathbb{M}}{\mathbb{L}^{3}}}}{\unit[997]{\si{\kilogram\per\meter\cubed}}}\right)\left(\frac{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}{\unit[\left(5.0\right)\left(\num{2.78e-13}\right)]{\si{\metre\cubed\per\second}}}\right)^{2-n}\right\} K_{p}\\
+K_{s} & =\frac{\left(\rho2^{3-2n}a^{n}\bar{u}^{2-n}\right)_{s}}{Re}\\
+ & =\left\{ \frac{\left(2a_{s}\right)^{n}}{a_{p}^{3n-4}}\left(\frac{\rho_{s}}{\rho_{p}}\right)\left(\frac{\bar{u}_{s}}{Q_{p}}\right)^{2-n}\right\} K_{p}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+ & =\left\{ \frac{\left(2\cdot\unit[60.0]{\mathbb{L}}\right)^{n}}{\left(\unit[6.0\times10^{-5}]{m}\right)^{3n-4}}\left(\frac{\unit[1.0]{\unitfrac{\mathbb{M}}{\mathbb{L}^{3}}}}{\unit[997]{\si{\kilogram\per\meter\cubed}}}\right)\left(\frac{\unit[1.0]{\unitfrac{\mathbb{L}}{\mathbb{T}}}}{\unit[\left(5.0\right)\left(\num{2.78e-13}\right)]{\si{\metre\cubed\per\second}}}\right)^{2-n}\right\} K_{p}
 \end{align*}
 
 \end_inset
@@ -703,10 +666,9 @@ K_{s} & =\frac{\left(\rho2^{3-2n}a^{n}\bar{u}^{2-n}\right)_{s}}{Re}=\left\{ \fra
 
 \begin_layout Standard
 Note that the power law model always retains proper dimensions for viscosity:
- 
 \begin_inset Formula 
 \[
-\unit[\mu]{\left[\frac{\mathbb{M}}{\mathbb{L}\mathbb{T}}\right]}=K\left[\frac{\mathbb{M}}{\mathbb{L}\mathbb{T}^{2-n}}\right]\left(\unit[\dot{\gamma}]{\left[\mathbb{T}^{-1}\right]}\right)^{n-1}
+\unit[\bm{\mu}]{\left[\frac{\mathbb{M}}{\mathbb{L}\mathbb{T}}\right]}=\mathbf{K}\left[\frac{\mathbb{M}}{\mathbb{L}\mathbb{T}^{2-n}}\right]\left(\unit[\dot{\bm{\gamma}}]{\left[\mathbb{T}^{-1}\right]}\right)^{n-1}
 \]
 
 \end_inset
