@@ -104,6 +104,7 @@ c-----------------------------------------------------------------------
       
       real gc
       real, allocatable, dimension(:,:,:,:) :: gamma	  
+      real :: um, nn, rr, yy, ydir, hh, upro
 
 !     strain rate invariants (nek built-in)
       common /screv/ ei2(lx1,ly1,lz1,lelt)
@@ -118,12 +119,16 @@ c-----------------------------------------------------------------------
       
       if (istep.eq.0) then
         do i=1,ntot1
+          x = xm1(i,1,1,1)
+          y = ym1(i,1,1,1)
+
           if (Y.GT.0.0) then
             um = um1
             nn = n1
             rr = rr1
             yy = yy1
             ydir = -1.0
+            !write(*,*) "n1 = ",n1, "; nn = ",nn!,"; hh = ",hh
           else
             um = um2
             nn = n2
@@ -135,11 +140,16 @@ c-----------------------------------------------------------------------
 !         distance from the center of inlet boundary      
           hh = (y-yy)/cos(thi)
           hh = abs(abs(hh)-rr)/rr
-
-          upro = (1.0-hh**(1.0+1.0/nn))      
           
-          uxbc(i,1,1,1) = um*upro*cos(th)
-          uybc(i,1,1,1) = um*ydir*upro*sin(th)
+          if (hh.gt.0 .and. hh.le.1) then
+            
+            upro = (1.0-hh**(1.0+1.0/nn))  
+          else
+            upro = 0
+          endif    
+          
+          uxbc(i,1,1,1) = upro*um*cos(th)
+          uybc(i,1,1,1) = upro*um*ydir*sin(th)
 
         enddo
       endif
@@ -214,7 +224,6 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       include 'NEKUSE'
       
-      real :: um, nn, rr, yy, ydir, hh, upro
       integer e, eg
       
       e = gllel(eg)
