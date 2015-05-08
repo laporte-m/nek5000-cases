@@ -1,0 +1,296 @@
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+! "1": UPPER CHANNEL: Power-law model of 0.3% Polyox WSR-301
+! "2": LOWER CHANNEL: Pure water
+
+! ### SIMILITUDE
+!   length, time, and mass scales: sim. units per um, s, kg
+      lsc = 1.0/48.0
+      tsc = 1.0  
+      msc = 9.069454E9    
+!   Reynolds number
+!     nre1 =     
+!     nre2 = 
+
+! ### FLUID MODEL
+!   power law index
+      n1 = 0.7859 
+      n2 = 1.0000     
+!   consistency index (K) or Newtonian viscosity (mu)
+      udiff1 = 1.0966E4
+      udiff2 = 3.8745E2
+!   constant density
+      param(1) = 1.0
+!   constant heat capacity
+!     param(7) = 1.0
+
+! ### GEOMETRY
+!   half-width or radius of branches
+      rr1 = 0.5*58.0/48.0
+      rr2 = 0.5*1.0 
+!   branching angle: radians
+      th = asin(0.5) ! 30 deg
+!   inlet boundary:  perpendicular to branch: thi = th 
+!                    parallel to y: thi = 0
+      thi = th
+!   branching point (along x)
+      xbr = -30.0
+!   y-coordinate on each branch INLET closest to y=0
+      yy1 = 28.86750
+      yy2 = -28.88833
+
+! ### INLET PROFILE        
+!   volumetric flow rates at branch inlets
+!     q1 = 
+!     q2 =
+!   maximum velocities at branch inlets
+      um1 = 18.772
+      um2 = 22.620
+!   allocate BC arrays
+      allocate( uxbc  (lx1, ly1, lz1, lelt) )
+      allocate( uybc  (lx1, ly1, lz1, lelt) )
+
+! ### SOLVER FLAGS   
+      param(30) = 1.    ! enable uservp()
+      param(66) = 0.    ! output format (<0 = ASCII)
+      param(67) = 0.    ! restart format 
+	  
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      integer ieg
+      
+      if (ifield.eq.1) then
+      if(istep.le.1) then
+
+          udiff = udiff1
+
+      else
+!       interpolate between fluid models based on diffusion
+          udiffn1 = udiff1*shvis(ix,iy,iz,gllel(ieg))
+          udiffn2 = udiff2
+          plc0 = (udiffn1-udiffn2)*(temp-udiff2)/(udiff1-udiff2)          
+          if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
+!           viscosity must be positive...
+            plc=udiffn2+plc0
+
+          udiff = plc	
+
+      endif
+      
+      utrans = param(1)
+      else
+        udiff = 1.0E-04
+        utrans= param(7)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      real gc
+      real, allocatable, dimension(:,:,:,:) :: gamma	  
+
+!     strain rate invariants (nek built-in)
+      common /screv/ ei2(lx1,ly1,lz1,lelt)
+     $             , ei3(lx1,ly1,lz1,lelt)
+
+!     might not be necessary with further debugging
+      if (allocated(shvis)) deallocate(shvis)
+      allocate( gamma  (lx1, ly1, lz1, lelt) )   
+      allocate( shvis  (lx1, ly1, lz1, lelt) )
+         
+      ntot1  = nx1*ny1*nz1*nelv
+      
+!     calculate strain rate components (nek built-in)
+      call stnrinv
+
+      do ieg= 1, nelgt
+      if (gllnid(ieg).eq.nid) then
+!      "if this element is the responsibility of this core"
+!      necessary (?) for parallel computation
+        iel = gllel(ieg)
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+            
+!             need shear rate for power-law model
+              gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
+			  
+!             keep track of lowest non-zero shear rate
+              gc = gamma(i,j,k,iel)
+              if (gc.lt.gm .and. gc .gt. 0.0) then
+                gm = gc
+              end if
+              
+            end do
+           end do
+          end do
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+              
+!             if shear rate is 0 and n<1:
+!                n .lt. 1: div by 0 in power-law model
+!                n .ge. 1: 0 assigned to udiff (nek rejects)
+              if (gamma(i,j,k,iel) .lt. gm) then
+                gamma(i,j,k,iel) = gm
+              end if
+              
+!             used in uservp to assign udiff
+!             currently only calculated for upper ("1") branch
+              shvis(i,j,k,iel)=(gamma(i,j,k,iel))**(n1-1.0)
+              
+              if (shvis(i,j,k,iel) .le. 0.0) then
+                write(89,*) shvis(i,j,k,iel)
+              end if
+            end do
+           end do
+          end do
+           
+      end if
+      end do
+      
+!     must reset the shear rate tracker
+      gm = 1e38
+      
+      if (mod(istep,iostep).eq.0) then 
+        ! output shear rate and variable component of viscosity
+        call outpost(vx,gamma,vz,pr,t,'shr')
+      endif 
+ 
+      deallocate(gamma)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      real :: um, nn, rr, yy, ydir, hh, upro
+      integer e, eg
+      
+      e = gllel(eg)
+      
+      if (ifield.eq.1) then
+
+        if (Y.GT.0.0) then
+          um = um1
+          nn = n1
+          rr = rr1
+          yy = yy1
+          ydir = -1.0
+        else
+          um = um2
+          nn = n2
+          rr = rr2
+          yy = yy2
+          ydir = 1.0
+        endif
+
+!       distance from the center of inlet boundary      
+        hh = (y-yy)/cos(thi)
+        hh = abs(abs(hh)-rr)/rr
+
+        upro = (1.0-hh**(1.0+1.0/nn))      
+        uxbc = um*upro*cos(th)
+        uybc = um*ydir*upro*sin(th)
+
+        ux = uxbc(ix,iy,iz,e)
+        uz = 0.0
+      
+      elseif (ifield.eq.2) then
+
+        if (Y.GT.0.0) then
+          temp=udiff1
+        else
+          temp=udiff2
+        endif
+
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ux = 0.0
+      uy = 0.0
+      uz = 0.0
+
+      if (Y.GT.0.0) then
+        temp=udiff1
+      else
+        temp=udiff2
+      endif
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
