@@ -116,6 +116,34 @@ c-----------------------------------------------------------------------
          
       ntot1  = nx1*ny1*nz1*nelv
       
+      if (istep.eq.0) then
+        do i=1,ntot1
+          if (Y.GT.0.0) then
+            um = um1
+            nn = n1
+            rr = rr1
+            yy = yy1
+            ydir = -1.0
+          else
+            um = um2
+            nn = n2
+            rr = rr2
+            yy = yy2
+            ydir = 1.0
+          endif
+
+!         distance from the center of inlet boundary      
+          hh = (y-yy)/cos(thi)
+          hh = abs(abs(hh)-rr)/rr
+
+          upro = (1.0-hh**(1.0+1.0/nn))      
+          
+          uxbc(i,1,1,1) = um*upro*cos(th)
+          uybc(i,1,1,1) = um*ydir*upro*sin(th)
+
+        enddo
+      endif
+
 !     calculate strain rate components (nek built-in)
       call stnrinv
 
@@ -180,7 +208,7 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine userbc (ix,iy,iz,iside,ieg)
+      subroutine userbc (ix,iy,iz,iside,eg)
       use mldat
       include 'SIZE'
       include 'TOTAL'
@@ -192,32 +220,11 @@ c-----------------------------------------------------------------------
       e = gllel(eg)
       
       if (ifield.eq.1) then
-
-        if (Y.GT.0.0) then
-          um = um1
-          nn = n1
-          rr = rr1
-          yy = yy1
-          ydir = -1.0
-        else
-          um = um2
-          nn = n2
-          rr = rr2
-          yy = yy2
-          ydir = 1.0
-        endif
-
-!       distance from the center of inlet boundary      
-        hh = (y-yy)/cos(thi)
-        hh = abs(abs(hh)-rr)/rr
-
-        upro = (1.0-hh**(1.0+1.0/nn))      
-        uxbc = um*upro*cos(th)
-        uybc = um*ydir*upro*sin(th)
-
-        ux = uxbc(ix,iy,iz,e)
-        uz = 0.0
       
+        ux = uxbc(ix,iy,iz,e)
+        uy = uybc(ix,iy,iz,e)
+        uz = 0.0
+
       elseif (ifield.eq.2) then
 
         if (Y.GT.0.0) then
