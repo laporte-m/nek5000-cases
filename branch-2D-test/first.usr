@@ -4,6 +4,9 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
+      integer :: eg1, eg2
+!      real, dimension
+
 ! "1": UPPER CHANNEL: Power-law model of 0.3% Polyox WSR-301
 ! "2": LOWER CHANNEL: Pure water
 
@@ -58,7 +61,81 @@ c-----------------------------------------------------------------------
       param(30) = 1.    ! enable uservp()
       param(66) = 0.    ! output format (<0 = ASCII)
       param(67) = 0.    ! restart format 
+
+! ### MESH MODIFICATION
+!   branch elements at point of joining
+      eg1 = 638 
+      eg2 = 327
+      
+      call egbend (eg1, 1)
+      !call egbend (eg2,-1)
+
+
 	  
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine egbend (eg,dir)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      integer e,eg
+      e = gllel(eg)
+
+      if (gllnid(eg).eq.nid) then
+         
+         aa = 1./(2.*)
+
+!        to generalize this completely: start from the unadjusted mesh
+!        and move x0 manually. 
+!        most general form would need to :
+!         -automatically identify the four elements that intersect
+!          at the branching point (0,0)
+!         -allow the user to specify the "roundness" of the corner
+
+!        DIRECTIONS:
+
+!        shape of the parabola (a)
+!        from the extremes of the wall boundary, and theta
+!        a = 1./(2*(ys-y0)*tan(th))
+!          = 1./(2*ys*tan(th)) for branches meeting at y=0
+!        x = a(y-y0)^2 + x0 = ay^2 - 0.05
+
+!        y-intercepts for lines with slope theta
+!        passing through each of the remaining wall boundary points
+!        (y-y_i) = m*(x-x_i) = tan(th)*(x-x_i) ???
+
+         do i=2,nx-1
+
+         enddo
+
+!        find position (from 0-1) of each point on each line,
+!        from one side of the element to the other
+
+!        move boundary points to intersection of parabola with lines
+
+!        move internal points to new points (same 0-1 relative position)
+!        on their lines, based on the new distance between the boundary
+!        points (parabola) and the opposite internal boundary (straight, theta)
+
+!        perhaps need to call fix_geom
+
+         do i=2,nx1-1
+            do j=1,ny1-1
+               do k=1,nz1
+
+                  
+                  ym1(i,j,k,eg1)
+                  ym1(i,j,k,eg2)
+
+               enddo
+            enddo
+         enddo
+
+      endif      
+
       return
       end
 c-----------------------------------------------------------------------
@@ -299,6 +376,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 c
+      
       return
       end
 c-----------------------------------------------------------------------
