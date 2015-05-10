@@ -67,14 +67,14 @@ c   branch elements at point of joining
       eg1 = 638 
       eg2 = 327
       
-      call round_corner (eg1, th,-1,-1)
-      call round_corner (eg2, th, 1,-1)
+      call round_corner (eg1, -th)
+      call round_corner (eg2,  th)
 	  
       return
       end
 
 c-----------------------------------------------------------------------
-      subroutine round_corner (eg,th,dir1,dir2)
+      subroutine round_corner (eg,th)
       include 'SIZE'
       include 'TOTAL'
 c      
@@ -82,25 +82,32 @@ c     Modify straight corner to smooth parabola near merge point
 c       eg:   corner element to be modified
 c       th:   branching angle
 c       dir1: y-direction of branch (-1: flow down, 1: flow up)
-c       dir2: 
+c       dir2: *********
 c 
+      integer e,eg,d1
 
-      real, dimension(4,2) :: crnr
-      integer e,eg
       e = gllel(eg)
+
+      d1 = int(sign(1.0,th))
+
+      if (d1.eq.-1) then
+         nl1 = ny1
+      else
+         nl1 = nx1
+      endif
+
+      real :: slp
+      real, dimension(4,2) :: crnr
+      real, dimension(nl1) :: yint      
       
+      slp = tan(th)
+
       if (gllnid(eg).eq.nid) then
          
          crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
          crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
          crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
          crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
-         
-c        branching point
-         yz = crnr(1, 2)
-c        farthest corner on wall boundary
-         ys = abs( crnr(minloc( crnr(:,1) ), 2) )
-         aa = dir2*1./( 2. * (ys - yz) * tan(th) )
 
 !        to generalize this completely: start from the unadjusted mesh
 !        and move x0 manually. 
@@ -108,21 +115,23 @@ c        farthest corner on wall boundary
 !         -automatically identify the four elements that intersect
 !          at the branching point (0,0)
 !         -allow the user to specify the "roundness" of the corner
-
-!        DIRECTIONS:
-
-!        shape of the parabola (a)
-!        from the extremes of the wall boundary, and theta
-!        a = 1./(2*(ys-y0)*tan(th))
-!          = 1./(2*ys*tan(th)) for branches meeting at y=0
-!        x = a(y-y0)^2 + x0 = ay^2 - 0.05
+     
+c        branching point
+         yz = crnr(1, 2)
+c        farthest corner on wall boundary
+         ys = abs( crnr(minloc( crnr(:,1) ), 2) )
+         aa = -1./( 2. * (ys - yz) * abs(slp) )
 
 !        y-intercepts for lines with slope theta
 !        passing through each of the remaining wall boundary points
 !        (y-y_i) = m*(x-x_i) = tan(th)*(x-x_i) ???
-
-         do i=2,nx-1
-
+         
+         do i=2,nl1-1
+            if (d1.eq.1) then
+               yint(i) = ym1(i,1,1,e) - slp*xm(i,1,1,e)
+            else
+               yint(i) = ym1(1,i,1,e) - slp*xm(1,i,1,1,e)
+            endif
          enddo
 
 !        find position (from 0-1) of each point on each line,
