@@ -5,88 +5,102 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       
       integer :: eg1, eg2
-!      real, dimension
+!     real, dimension
 
-! "1": UPPER CHANNEL: Power-law model of 0.3% Polyox WSR-301
-! "2": LOWER CHANNEL: Pure water
+c "1": UPPER CHANNEL: Power-law model of 0.3% Polyox WSR-301
+c "2": LOWER CHANNEL: Pure water
 
-! ### SIMILITUDE
-!   length, time, and mass scales: sim. units per um, s, kg
+c ### SIMILITUDE
+c   length, time, and mass scales: sim. units per um, s, kg
       lsc = 1.0/48.0
       tsc = 1.0  
       msc = 9.069454E9    
-!   Reynolds number
+c   Reynolds number
 !     nre1 =     
 !     nre2 = 
 
-! ### FLUID MODEL
-!   power law index
+c ### FLUID MODEL
+c   power law index
       n1 = 0.7859 
       n2 = 1.0000     
-!   consistency index (K) or Newtonian viscosity (mu)
+c   consistency index (K) or Newtonian viscosity (mu)
       udiff1 = 1.0966E4
       udiff2 = 3.8745E2
-!   constant density
+c   constant density
       param(1) = 1.0
-!   constant heat capacity
+c   constant heat capacity
 !     param(7) = 1.0
 
-! ### GEOMETRY
-!   half-width or radius of branches
+c ### GEOMETRY
+c   half-width or radius of branches
       rr1 = 0.5*58.0/48.0
       rr2 = 0.5*1.0 
-!   branching angle: radians
+c   branching angle: radians
       th = asin(0.5) ! 30 deg
-!   inlet boundary:  perpendicular to branch: thi = th 
-!                    parallel to y: thi = 0
+c   inlet boundary:  perpendicular to branch: thi = th 
+c                    parallel to y: thi = 0
       thi = th
-!   branching point (along x)
+c   branching point (along x)
       xbr = -30.0
-!   y-coordinate on each branch INLET closest to y=0
+c   y-coordinate on each branch INLET closest to y=0
       yy1 = 28.86750
       yy2 = -28.88833
 
-! ### INLET PROFILE        
-!   volumetric flow rates at branch inlets
+c ### INLET PROFILE        
+c   volumetric flow rates at branch inlets
 !     q1 = 
 !     q2 =
-!   maximum velocities at branch inlets
+c   maximum velocities at branch inlets
       um1 = 18.772
       um2 = 22.620
-!   allocate BC arrays
+c   allocate BC arrays
       allocate( uxbc  (lx1, ly1, lz1, lelt) )
       allocate( uybc  (lx1, ly1, lz1, lelt) )
 
-! ### SOLVER FLAGS   
+c ### SOLVER FLAGS   
       param(30) = 1.    ! enable uservp()
       param(66) = 0.    ! output format (<0 = ASCII)
       param(67) = 0.    ! restart format 
 
-! ### MESH MODIFICATION
-!   branch elements at point of joining
+c ### MESH MODIFICATION
+c   branch elements at point of joining
       eg1 = 638 
       eg2 = 327
       
-      call egbend (eg1, 1)
-      !call egbend (eg2,-1)
-
-
+      call round_corner (eg1, th,-1,-1)
+      call round_corner (eg2, th, 1,-1)
 	  
       return
       end
 
 c-----------------------------------------------------------------------
-      subroutine egbend (eg,dir)
-      use mldat
+      subroutine round_corner (eg,th,dir1,dir2)
       include 'SIZE'
       include 'TOTAL'
-      
+c      
+c     Modify straight corner to smooth parabola near merge point
+c       eg:   corner element to be modified
+c       th:   branching angle
+c       dir1: y-direction of branch (-1: flow down, 1: flow up)
+c       dir2: 
+c 
+
+      real, dimension(4,2) :: crnr
       integer e,eg
       e = gllel(eg)
-
+      
       if (gllnid(eg).eq.nid) then
          
-         aa = 1./(2.*)
+         crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
+         crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
+         crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
+         crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
+         
+c        branching point
+         yz = crnr(1, 2)
+c        farthest corner on wall boundary
+         ys = abs( crnr(minloc( crnr(:,1) ), 2) )
+         aa = dir2*1./( 2. * (ys - yz) * tan(th) )
 
 !        to generalize this completely: start from the unadjusted mesh
 !        and move x0 manually. 
