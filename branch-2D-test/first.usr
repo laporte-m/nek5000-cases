@@ -96,18 +96,25 @@ c
          nl1 = nx1
       endif
 
-      real :: slp
+      real :: ll, sldx, sldy
       real, dimension(4,2) :: crnr
-      real, dimension(nl1) :: yint      
+      real, dimension(nl1) :: slp, yint      
+      real, dimension(nx1,ny1) :: pos
       
-      slp = tan(th)
+      slp(1) = tan(th)
 
       if (gllnid(eg).eq.nid) then
-         
+        
          crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
          crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
          crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
          crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
+
+c        ADD CHECK TO SEE IF ELEMENT SIDE IS AT ANGLE THETA?
+c        WHAT SHAPE IS PARABOLA IF WALL BOUNDARY IS PARALLEL
+c        TO THE REST OF THE BRANCH??? SHOULDN'T WORK!
+c        THE EQUATION FOR AA DOESN'T CONSIDER THIS, MAYBE WRONG?
+c        OR MAYBE THERE IS ONLY ONE PARABOLA FOR EACH YS, YZ, THETA??
 
 !        to generalize this completely: start from the unadjusted mesh
 !        and move x0 manually. 
@@ -122,20 +129,47 @@ c        farthest corner on wall boundary
          ys = abs( crnr(minloc( crnr(:,1) ), 2) )
          aa = -1./( 2. * (ys - yz) * abs(slp) )
 
-!        y-intercepts for lines with slope theta
-!        passing through each of the remaining wall boundary points
-!        (y-y_i) = m*(x-x_i) = tan(th)*(x-x_i) ???
+!        slopes of GLL lines emerging from wall boundary
          
          do i=2,nl1-1
             if (d1.eq.1) then
-               yint(i) = ym1(i,1,1,e) - slp*xm(i,1,1,e)
+               sldx = xm1(i,1,1,e) - xm1(i,ny1,1,e)
+               sldy = ym1(i,1,1,e) - ym1(i,ny1,1,e)
+               slp(i) = sldy/sldx
+               yint(i) = ym1(i,1,1,e) - slp*xm1(i,1,1,e)
             else
-               yint(i) = ym1(1,i,1,e) - slp*xm(1,i,1,1,e)
+               sldx = xm1(1,i,1,e) - xm1(nx1,i,1,e)
+               sldy = ym1(1,i,1,e) - ym1(nx1,i,1,e)
+               slp(i) = sldy/sldx
+               yint(i) = ym1(1,i,1,e) - slp*xm1(1,i,1,e)
             endif
          enddo
 
 !        find position (from 0-1) of each point on each line,
 !        from one side of the element to the other
+
+         do i=2,nl1-1
+            
+            if (d1.eq.1) then
+               ll = ( yint(i) - ym1(i,1,1,e) )/sin(th)
+               do j=2,ny1-1
+                  pos(i,j) = ((yint(i) - ym1(i,j,1,e))/sin(th))/ll
+               enddo
+               
+               xm1(i,1,1,e) = 
+               ym1(i,1,1,e) = 
+               
+               do j=2,ny-1
+                  xm1(i,j,1,e) = 
+                  ym1(i,j,1,e) =
+               enddo
+            else
+               ll = ( yint(i) - ym1(1,i,1,e) )/sin(th)
+               do j=2,nx1-1
+                  pos(j,i) = ((yint(i) - ym1(j,i,1,e))/sin(th))/ll
+               enddo
+            endif
+         enddo
 
 !        move boundary points to intersection of parabola with lines
 
