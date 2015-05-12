@@ -61,148 +61,16 @@ c ### SOLVER FLAGS
       param(30) = 1.    ! enable uservp()
       param(66) = 0.    ! output format (<0 = ASCII)
       param(67) = 0.    ! restart format 
-      param(59) = 1.    ! mesh modification
+!      param(59) = 1.    ! mesh modification
 
 c ### MESH MODIFICATION
 c   branch elements at point of joining
       eg1 = 638 
       eg2 = 327
-      
-      call round_corner (eg2, asin(0.5))
-!      call round_corner (eg2,  th)
-	  
-      return
-      end
-
-c-----------------------------------------------------------------------
-      subroutine round_corner (eg,th)
-      include 'SIZE'
-      include 'TOTAL'
-c      
-c     Modify straight corner to smooth parabola near merge point
-c       eg:   corner element to be modified
-c       th:   branching angle
-c       dir1: y-direction of branch (-1: flow down, 1: flow up)
-c       dir2: *********
-c 
-      integer e, eg, drc
-      real :: th, aa, ys, yz
-      real :: ll, llp, sldx, sldy
-      real :: ss, yym, mst, xrn, dscr
-      real :: xpp1, xpp2, ypp1, ypp2, xmpp, ympp
-      real, dimension(4,2) :: crnr
-      real, dimension(:), allocatable :: slp     
-      real, dimension(nx1,ny1) :: pos
-
-!     write(*,*) "th 1 = ", th
-      e = gllel(eg)
-
-      drc = int(sign(1.0,th))
-
-      if (drc.eq.-1) then
-         nl1 = ny1
-      else
-         nl1 = nx1
-      endif
-
-      allocate( slp(nl1) )
-
-!     write(*,*) "th 2 = ", th
-
-      if (gllnid(eg).eq.nid) then
-
-c       THIS WILL ACTUALLY BE NEGATIVE COMPARED TO THE REST OF SLP!
-        slp(1) = tan(th)
-!       write(*,*) "slp(1) = ", slp(1)
-        
-        crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
-        crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
-        crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
-        crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
      
-c       branching point
-        yz = ym1(1,1,1,e)
-!       write(*,*) "yz = ", yz
-
-c       farthest corner on wall boundary
-        if (drc.eq.1) then
-          ys = ym1(nx1,1,1,e)
-          xs = xm1(nx1,1,1,e)
-        else
-          ys = ym1(1,ny1,1,e)
-          xs = xm1(1,ny1,1,e)
-        endif
-        
-!       write(*,*) "ys = ", ys
-        aa = 1./( 2. * (ys - yz) * slp(1) )
-         
-        do i=2,nl1-1
-          if (drc.eq.1) then
-
-c           slopes of GLL lines emerging from wall boundary
-            sldx = xm1(i,1,1,e) - xm1(i,ny1,1,e)
-            sldy = ym1(i,1,1,e) - ym1(i,ny1,1,e)
-            slp(i) = sldy/sldx
-
-c           position of points along the lines pre-modification
-            ll = ( ym1(i,ny1,1,e) - ym1(i,1,1,e) )
-            do j=2,ny1-1
-              llp = ( ym1(i,j,1,e) - ym1(i,1,1,e) )
-              pos(i,j) = llp/ll
-!             write(*,*) "posy(",i,",",j,") = ",pos(i,j)
-            enddo
-
-!           modify wall boundary points    
-            ss = ys - yz
-            yym = ( ym1(i,1,1,e) - yz ) / slp(i)
-            mst = ( slp(i)**2 ) / ( ss * slp(1) )
-            xrn = xm1(i,1,1,e) - xs
-
-            dscr = ( 1 + mst*( 2*(xrn - yym) + ss/slp(1) ) )**0.5
-            
-            xpp1 = (1 + dscr)/mst - yym + xm1(i,1,1,e)
-            xpp2 = (1 - dscr)/mst - yym + xm1(i,1,1,e)
-            
-            if (xpp1.gt.xm1(i,1,1,e) .and. xpp1.lt.xm1(i,ny1,e,1)) then
-               xm1(i,1,1,e) = xpp1
-               ym1(i,1,1,e) = (1 + dscr)*slp(i)/mst + yz
-            else
-               xmpp = xpp2
-               xm1(i,1,1,e) = xmpp
-               ympp = (1 - dscr)*slp(i)/mst + yz
-               ym1(i,1,1,e) = ympp
-            endif
-               
-!           modify inner GLL points based on original positions
-            do j=2,ny-1
-              xm1(i,j,1,e) = pos(i,j) * ( xm1(i,ny1,1,e) - xmpp ) + xmpp
-              ym1(i,j,1,e) = pos(i,j) * ( ym1(i,ny1,1,e) - ympp ) + ympp
-            enddo
-
-          else
-c$$$            sldx = xm1(1,i,1,e) - xm1(nx1,i,1,e)
-c$$$            sldy = ym1(1,i,1,e) - ym1(nx1,i,1,e)
-c$$$            slp(i) = sldy/sldx
-c$$$            ll = ( yint(i) - ym1(1,i,1,e) )/sin(th)
-c$$$            do j=2,nx1-1
-c$$$              pos(j,i) = ((yint(i) - ym1(j,i,1,e))/sin(th))/ll
-c$$$            enddo
-          endif
-        enddo
-
-!        move boundary points to intersection of parabola with lines
-
-!        move internal points to new points (same 0-1 relative position)
-!        on their lines, based on the new distance between the boundary
-!        points (parabola) and the opposite internal boundary (straight)
-
-!        perhaps need to call fix_geom
-
-      endif      
-
       return
       end
-c-----------------------------------------------------------------------
+
 c-----------------------------------------------------------------------
       subroutine uservp (ix,iy,iz,ieg)
       use mldat
