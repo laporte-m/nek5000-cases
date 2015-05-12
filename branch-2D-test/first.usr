@@ -63,11 +63,16 @@ c ### SOLVER FLAGS
       param(67) = 0.    ! restart format 
 !      param(59) = 1.    ! mesh modification
 
-c ### MESH MODIFICATION
-c   branch elements at point of joining
-      eg1 = 638 
-      eg2 = 327
-     
+c ### MESH DETAILS
+c   coordinates of merging and splitting corners
+      mcnr(1,:) = (/ 0.000000, 0.000000 /)
+      mcnr(2,:) = (/ 76.38062, 0.000000 /)
+c   merging and splitting points on top and bottom outer boundaries
+      tcnr(1,:) = (/ 0.7218750, 1.194375 /)
+      tcnr(2,:) = (/ 75.74721,  1.288125 /)
+      bcnr(1,:) = (/ 0.7218750,-1.003542 /)
+      bcnr(2,:) = (/ 75.74271, -1.107708 /)
+
       return
       end
 
@@ -113,7 +118,7 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       
       real gc
-      real, allocatable, dimension(:,:,:,:) :: gamma	  
+      real, allocatable, dimension(:,:,:,:) :: gamma, temp	  
       real :: um, nn, rr, yy, ydir, hh, upro
 
 !     strain rate invariants (nek built-in)
@@ -138,7 +143,6 @@ c-----------------------------------------------------------------------
             rr = rr1
             yy = yy1
             ydir = -1.0
-            !write(*,*) "n1 = ",n1, "; nn = ",nn!,"; hh = ",hh
           else
             um = um2
             nn = n2
@@ -152,10 +156,9 @@ c-----------------------------------------------------------------------
           hh = abs(abs(hh)-rr)/rr
           
           if (hh.gt.0 .and. hh.le.1) then
-            
             upro = (1.0-hh**(1.0+1.0/nn))  
           else
-            upro = 0
+            upro = 0.0
           endif    
           
           uxbc(i,1,1,1) = upro*um*cos(th)
@@ -218,9 +221,11 @@ c-----------------------------------------------------------------------
 !     must reset the shear rate tracker
       gm = 1e38
       
-      if (mod(istep,iostep).eq.0) then 
-        ! output shear rate and variable component of viscosity
-        call outpost(vx,gamma,vz,pr,t,'shr')
+      if (mod(istep,iostep).eq.0 .and. istep.ne.0) then 
+         temp = shvis
+         call outpost(gamma,temp,vz,pr,t,'shr')
+      else if (istep.eq.0) then
+         call outpost(vx,vy,vz,pr,t,'ini')
       endif 
  
       deallocate(gamma)
@@ -263,14 +268,61 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       include 'NEKUSE'
 
-      ux = 0.0
-      uy = 0.0
-      uz = 0.0
+      real :: ua1, ua2, lne1, lne2
+      
+      e = gllel(eg)
+            
+      if (ifield.eq.1) then
 
-      if (Y.GT.0.0) then
-        temp=udiff1
-      else
-        temp=udiff2
+        ua1 = um1*((1.0+1.0/n1)/(2.0+1.0/n1))
+        ua2 = um2*((1.0+1.0/n2)/(2.0+1.0/n2))
+
+        if (y.gt.mcnr(1,1)) then
+           lne1 = tcnr(1,1) - mcnr(1,1)
+           lne1 = lne1 * ( y - mcnr(1,2) ) / ( tcnr(1,2) - mcnr(1,2) )
+           lne1 = lne1 + mcnr(1,1)
+           lne2 = tcnr(2,1) - mcnr(2,1)
+           lne2 = lne2 * ( y - mcnr(2,2) ) / ( tcnr(2,2) - mcnr(2,2) )
+           lne2 = lne2 + mcnr(2,1)
+           if (x.lt.lne1) then
+              ux = ua1*cos(th)
+              uy = -1.0*ua1*sin(th)
+           elseif (x.lt.lne2) then
+              ux = ua1
+              uy = 0.0
+           else
+              ux = ua1*cos(th)
+              uy = ua1*sin(th)
+           endif
+        else
+           lne1 = bcnr(1,1) - mcnr(1,1)
+           lne1 = lne1 * ( y - mcnr(1,2) ) / ( bcnr(1,2) - mcnr(1,2) )
+           lne1 = lne1 + mcnr(1,1)
+           lne2 = bcnr(2,1) - mcnr(2,1)
+           lne2 = lne2 * ( y - mcnr(2,2) ) / ( bcnr(2,2) - mcnr(2,2) )
+           lne2 = lne2 + mcnr(2,1)
+           if (x.lt.lne1) then
+              ux = ua2*cos(th)
+              uy = ua2*sin(th)
+           elseif (x.lt.lne2) then
+              ux = ua2
+              uy = 0.0
+           else
+              ux = ua2*cos(th)
+              uy = -1.0*ua2*sin(th)
+           endif
+        endif
+
+        uz = 0.0
+
+      elseif (ifield.eq.2) then
+
+        if (Y.GT.0.0) then
+          temp=udiff1
+        else
+          temp=udiff2
+        endif
+
       endif
       
       return
