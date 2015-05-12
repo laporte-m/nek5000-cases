@@ -67,8 +67,8 @@ c   branch elements at point of joining
       eg1 = 638 
       eg2 = 327
       
-      call round_corner (eg1, -th)
-      call round_corner (eg2,  th)
+      call round_corner (eg1, asin(-0.5))
+!      call round_corner (eg2,  th)
 	  
       return
       end
@@ -84,117 +84,134 @@ c       th:   branching angle
 c       dir1: y-direction of branch (-1: flow down, 1: flow up)
 c       dir2: *********
 c 
-      integer e,eg,d1
+      integer e, eg, drc
+      real :: th, aa, ys, yz, ll, llp, sldx, sldy
+      real, dimension(4,2) :: crnr
+      real, dimension(:), allocatable :: slp     
+      real, dimension(nx1,ny1) :: pos
 
+c     scratch
+      real :: tmp1
+      integer, dimension(:), allocatable :: tmp2
+!     write(*,*) "th 1 = ", th
       e = gllel(eg)
 
-      d1 = int(sign(1.0,th))
+      drc = int(sign(1.0,th))
 
-      if (d1.eq.-1) then
+      if (drc.eq.-1) then
          nl1 = ny1
       else
          nl1 = nx1
       endif
 
-      real :: ll, sldx, sldy
-      real, dimension(4,2) :: crnr
-      real, dimension(nl1) :: slp, yint      
-      real, dimension(nx1,ny1) :: pos
-      
-      slp(1) = tan(th)
+      allocate( slp(nl1) )
+
+!     write(*,*) "th 2 = ", th
 
       if (gllnid(eg).eq.nid) then
+
+c       THIS WILL ACTUALLY BE NEGATIVE COMPARED TO THE REST OF SLP!
+        slp(1) = tan(th)
+!       write(*,*) "slp(1) = ", slp(1)
         
-         crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
-         crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
-         crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
-         crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
+        crnr(1, :) = (/ xm1(  1,  1,1,e), ym1(  1,  1,1,e) /)
+        crnr(2, :) = (/ xm1(nx1,  1,1,e), ym1(nx1,  1,1,e) /)
+        crnr(3, :) = (/ xm1(  1,ny1,1,e), ym1(  1,ny1,1,e) /)
+        crnr(4, :) = (/ xm1(nx1,ny1,1,e), ym1(nx1,ny1,1,e) /)
 
-c        ADD CHECK TO SEE IF ELEMENT SIDE IS AT ANGLE THETA?
-c        WHAT SHAPE IS PARABOLA IF WALL BOUNDARY IS PARALLEL
-c        TO THE REST OF THE BRANCH??? SHOULDN'T WORK!
-c        THE EQUATION FOR AA DOESN'T CONSIDER THIS, MAYBE WRONG?
-c        OR MAYBE THERE IS ONLY ONE PARABOLA FOR EACH YS, YZ, THETA??
+c       ADD CHECK TO SEE IF ELEMENT SIDE IS AT ANGLE THETA?
+c       WHAT SHAPE IS PARABOLA IF WALL BOUNDARY IS PARALLEL
+c       TO THE REST OF THE BRANCH??? SHOULDN'T WORK!
+c       THE EQUATION FOR AA DOESN'T CONSIDER THIS, MAYBE WRONG?
+c       OR MAYBE THERE IS ONLY ONE PARABOLA FOR EACH YS, YZ, THETA??
 
-!        to generalize this completely: start from the unadjusted mesh
-!        and move x0 manually. 
-!        most general form would need to :
-!         -automatically identify the four elements that intersect
-!          at the branching point (0,0)
-!         -allow the user to specify the "roundness" of the corner
+c       to generalize this completely: start from the unadjusted mesh
+c       and move x0 manually. 
+c       most general form would need to :
+c        -automatically identify the four elements that intersect
+c         at the branching point (0,0)
+c        -allow the user to specify the "roundness" of the corner
      
-c        branching point
-         yz = crnr(1, 2)
-c        farthest corner on wall boundary
-         ys = abs( crnr(minloc( crnr(:,1) ), 2) )
-         aa = -1./( 2. * (ys - yz) * abs(slp) )
-
-!        slopes of GLL lines emerging from wall boundary
+c       branching point
+        yz = ym1(1,1,1,e)
+!       write(*,*) "yz = ", yz
+c       farthest corner on wall boundary
+        if (drc.eq.1) then
+          ys = ym1(nx1,1,1,e)
+          xs = xm1(nx1,1,1,e)
+        else
+          ys = ym1(1,ny1,1,e)
+          xs = xm1(1,ny1,1,e)
+        endif
+        
+!       write(*,*) "ys = ", ys
+        aa = 1./( 2. * (ys - yz) * slp(1) )
          
-         do i=2,nl1-1
-            if (d1.eq.1) then
-               sldx = xm1(i,1,1,e) - xm1(i,ny1,1,e)
-               sldy = ym1(i,1,1,e) - ym1(i,ny1,1,e)
-               slp(i) = sldy/sldx
-               yint(i) = ym1(i,1,1,e) - slp*xm1(i,1,1,e)
-            else
-               sldx = xm1(1,i,1,e) - xm1(nx1,i,1,e)
-               sldy = ym1(1,i,1,e) - ym1(nx1,i,1,e)
-               slp(i) = sldy/sldx
-               yint(i) = ym1(1,i,1,e) - slp*xm1(1,i,1,e)
-            endif
-         enddo
+        do i=2,nl1-1
+          if (drc.eq.1) then
 
-!        find position (from 0-1) of each point on each line,
-!        from one side of the element to the other
+c           slopes of GLL lines emerging from wall boundary
+            sldx = xm1(i,1,1,e) - xm1(i,ny1,1,e)
+            sldy = ym1(i,1,1,e) - ym1(i,ny1,1,e)
+            slp(i) = sldy/sldx
 
-         do i=2,nl1-1
+c           position of points along the lines pre-modification
+            ll = ( ym1(i,ny1,1,e) - ym1(i,1,1,e) )/sin(atan(slp(i)))
+            do j=2,ny1-1
+              llp = ( ym1(i,j,1,e) - ym1(i,1,1,e) )/sin(atan(slp(i)))
+              pos(i,j) = llp/ll
+!              write(*,*) "pos(",i,",",j,") = ",pos(i,j)
+            enddo
+
+!           modify wall boundary points    
+            ss = ys - yz
+            yym = ( ym1(i,1,1,e) - yz ) / slp(i)
+            mst = ( slp(i)**2 ) / ( ss * slp(1) )
+            xrn = xm1(i,1,1,e) - xs
+
+            dscr = ( 1 + mst*( 2*(xrn - yym) + ss/slp(1) ) )**0.5
             
-            if (d1.eq.1) then
-               ll = ( yint(i) - ym1(i,1,1,e) )/sin(th)
-               do j=2,ny1-1
-                  pos(i,j) = ((yint(i) - ym1(i,j,1,e))/sin(th))/ll
-               enddo
-               
-               xm1(i,1,1,e) = 
-               ym1(i,1,1,e) = 
-               
-               do j=2,ny-1
-                  xm1(i,j,1,e) = 
-                  ym1(i,j,1,e) =
-               enddo
+            xpp1 = (1 + dscr)/mst - yym + xm1(i,1,1,e)
+            xpp2 = (1 - dscr)/mst - yym + xm1(i,1,1,e)
+            
+            if (xpp1.gt.xm1(i,1,1,e) .and. xpp1.lt.xm1(i,ny1,e,1)) then
+               xm1(i,1,1,e) = xpp1
+               ym1(i,1,1,e) = (1 + dscr)*slp(i)/mst + yz
             else
-               ll = ( yint(i) - ym1(1,i,1,e) )/sin(th)
-               do j=2,nx1-1
-                  pos(j,i) = ((yint(i) - ym1(j,i,1,e))/sin(th))/ll
-               enddo
+               xm1(i,1,1,e) = xpp2
+               ym1(i,1,1,e) = (1 - dscr)*slp(i)/mst + yz
             endif
-         enddo
+               
+!           modify inner GLL points based on original positions
+            do j=2,ny-1
+              xm1(i,j,1,e) = 
+              ym1(i,j,1,e) =
+            enddo
+
+          else
+            sldx = xm1(1,i,1,e) - xm1(nx1,i,1,e)
+            sldy = ym1(1,i,1,e) - ym1(nx1,i,1,e)
+            slp(i) = sldy/sldx
+            ll = ( yint(i) - ym1(1,i,1,e) )/sin(th)
+            do j=2,nx1-1
+              pos(j,i) = ((yint(i) - ym1(j,i,1,e))/sin(th))/ll
+            enddo
+          endif
+        enddo
 
 !        move boundary points to intersection of parabola with lines
 
 !        move internal points to new points (same 0-1 relative position)
 !        on their lines, based on the new distance between the boundary
-!        points (parabola) and the opposite internal boundary (straight, theta)
+!        points (parabola) and the opposite internal boundary (straight)
 
 !        perhaps need to call fix_geom
-
-         do i=2,nx1-1
-            do j=1,ny1-1
-               do k=1,nz1
-
-                  
-                  ym1(i,j,k,eg1)
-                  ym1(i,j,k,eg2)
-
-               enddo
-            enddo
-         enddo
 
       endif      
 
       return
       end
+c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
       subroutine uservp (ix,iy,iz,ieg)
       use mldat
