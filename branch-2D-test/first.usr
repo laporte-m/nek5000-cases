@@ -26,6 +26,11 @@ c   power law index
 c   consistency index (K) or Newtonian viscosity (mu)
       udiff1 = 1.0966E4
       udiff2 = 3.8745E2
+c   concentration of species 1
+      cnc1 = 3000.0
+      cnc2 = 0.0
+c   constant mass diffusivity
+      dfc = 1e-1
 c   constant density
       param(1) = 1.0
 c   constant heat capacity
@@ -86,27 +91,26 @@ c-----------------------------------------------------------------------
       integer ieg
       
       if (ifield.eq.1) then
-      if(istep.le.1) then
-
+        if(istep.le.1) then
           udiff = udiff1
-
-      else
-!       interpolate between fluid models based on diffusion
+        else
+c         interpolate between models based on passive scalar diffusion 
           udiffn1 = udiff1*shvis(ix,iy,iz,gllel(ieg))
           udiffn2 = udiff2
-          plc0 = (udiffn1-udiffn2)*(temp-udiff2)/(udiff1-udiff2)          
+          plc0 = (udiffn1-udiffn2)*(temp-cnc2)/(cnc1-cnc2)
+c         ensure viscosity is positive
           if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
-!           viscosity must be positive...
-            plc=udiffn2+plc0
+          plc=udiffn2+plc0
 
           udiff = plc	
 
-      endif
-      
-      utrans = param(1)
-      else
-        udiff = 1.0E-04
-        utrans= param(7)
+        endif
+
+        utrans = param(1)
+
+      elseif (ifield.eq.2) then
+        udiff = dfc
+        utrans= 1.0
       endif
 
       return
@@ -252,9 +256,9 @@ c-----------------------------------------------------------------------
       elseif (ifield.eq.2) then
 
         if (Y.GT.0.0) then
-          temp=udiff1
+          temp=cnc1
         else
-          temp=udiff2
+          temp=cnc2
         endif
 
       endif
@@ -318,9 +322,9 @@ c-----------------------------------------------------------------------
       elseif (ifield.eq.2) then
 
         if (Y.GT.0.0) then
-          temp=udiff1
+          temp=cnc1
         else
-          temp=udiff2
+          temp=cnc2
         endif
 
       endif
@@ -361,7 +365,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 c
-      
+!      ifcvode = .true.
       return
       end
 c-----------------------------------------------------------------------

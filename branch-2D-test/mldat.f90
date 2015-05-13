@@ -7,7 +7,8 @@
        real :: tsc, lsc, msc
        real,dimension(:,:,:,:),allocatable :: shvis
        real,dimension(:,:,:,:),allocatable :: uxbc, uybc
-       real :: n1, n2, udiff1, udiff2
+       real,dimension(2,2) :: mcnr, tcnr, bcnr
+       real :: n1, n2, udiff1, udiff2, cnc1, cnc2
        real :: um1, um2
        real :: rr1, rr2, yy1, yy2
        real :: th, thi, xbr 
