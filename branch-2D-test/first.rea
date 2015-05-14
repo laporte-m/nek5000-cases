@@ -12,12 +12,12 @@
   0.100000E-01 p008 CONDUCT
    0.00000     p009 
    0.00000     p010 FINTIME
-   10000.000     p011 NSTEPS
+   30000.000     p011 NSTEPS
    0.00000     p012 DT
    0.00000     p013 IOCOMM
    0.00000     p014 IOTIME
-   25.00000     p015 IOSTEP
-   0.00000     p016 PSSOLVER: 0=default
+   100.00000     p015 IOSTEP
+   1.00000     p016 PSSOLVER: 0=default
    0.00000     p017 
   0.200000E-01 p018 GRID < 0 --> # cells on screen
   -1.00000     p019 INTYPE
