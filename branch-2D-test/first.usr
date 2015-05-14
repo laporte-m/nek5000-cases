@@ -31,10 +31,10 @@ c   constant density
 c   constant heat capacity
       param(7) = 1.0       
 c   concentration of species 1
-      cnc1 = 1.0966E4      
-      cnc2 = 3.8745E2      
+      cnc1 = 1.0966E4    
+      cnc2 = 3.8745E2     
 c   diffusion coefficient
-      dfc = 1.0E-2
+      dfc = 1E-2
 
 c ### GEOMETRY
 c   half-width or radius of branches
@@ -86,7 +86,8 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       include 'NEKUSE'
       
-      integer ieg
+      integer :: ieg
+      real :: avgk
       
       if (ifield.eq.1) then
       if(istep.le.1) then
@@ -94,14 +95,20 @@ c-----------------------------------------------------------------------
           udiff = udiff1
 
       else
+          avgk = (udiff1 + udiff2)/2
 c         interpolate between models based on passive scalar diffusion 
           udiffn1 = udiff1*shvis(ix,iy,iz,gllel(ieg))
           udiffn2 = udiff2
-          plc0 = (udiffn1-udiffn2)*(temp-cnc2)/(cnc1-cnc2)
+!         plc0 = (udiffn1-udiffn2)*(temp-cnc2)/(cnc1-cnc2)
 c         ensure viscosity is positive
           if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
-          plc=udiffn2+plc0
-          udiff = plc	
+!         plc=udiffn2+plc0
+          if (temp.le.avgk) then
+             udiff = udiff2
+          else
+             udiff = udiff1
+          endif
+!          udiff = plc	
       endif
       
       utrans = param(1)
@@ -224,7 +231,7 @@ c-----------------------------------------------------------------------
       
       if (mod(istep,iostep).eq.0 .and. istep.ne.0) then 
          temp = shvis
-         call outpost(gamma,temp,vz,pr,t,'shr')
+         call outpost(gamma,temp,vz,vdiff,t,'shr')
       else if (istep.eq.0) then
          call outpost(vx,vy,vz,pr,t,'ini')
       endif 
