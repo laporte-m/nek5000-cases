@@ -26,15 +26,15 @@ c   power law index
 c   consistency index (K) or Newtonian viscosity (mu)
       udiff1 = 1.0966E4
       udiff2 = 3.8745E2
-c   concentration of species 1
-      cnc1 = 3000.0
-      cnc2 = 0.0
-c   constant mass diffusivity
-      dfc = 1e-1
 c   constant density
       param(1) = 1.0
 c   constant heat capacity
-!     param(7) = 1.0
+      param(7) = 1.0       
+c   concentration of species 1
+      cnc1 = 1.0966E4      
+      cnc2 = 3.8745E2      
+c   diffusion coefficient
+      dfc = 1.0E-2
 
 c ### GEOMETRY
 c   half-width or radius of branches
@@ -45,8 +45,6 @@ c   branching angle: radians
 c   inlet boundary:  perpendicular to branch: thi = th 
 c                    parallel to y: thi = 0
       thi = th
-c   branching point (along x)
-      xbr = -30.0
 c   y-coordinate on each branch INLET closest to y=0
       yy1 = 28.86750
       yy2 = -28.88833
@@ -91,9 +89,11 @@ c-----------------------------------------------------------------------
       integer ieg
       
       if (ifield.eq.1) then
-        if(istep.le.1) then
+      if(istep.le.1) then
+
           udiff = udiff1
-        else
+
+      else
 c         interpolate between models based on passive scalar diffusion 
           udiffn1 = udiff1*shvis(ix,iy,iz,gllel(ieg))
           udiffn2 = udiff2
@@ -101,16 +101,13 @@ c         interpolate between models based on passive scalar diffusion
 c         ensure viscosity is positive
           if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
           plc=udiffn2+plc0
-
           udiff = plc	
-
-        endif
-
-        utrans = param(1)
-
-      elseif (ifield.eq.2) then
+      endif
+      
+      utrans = param(1)
+      else
         udiff = dfc
-        utrans= 1.0
+        utrans= param(7)
       endif
 
       return
@@ -365,7 +362,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 c
-!      ifcvode = .true.
+      
       return
       end
 c-----------------------------------------------------------------------
