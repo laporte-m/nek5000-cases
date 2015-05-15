@@ -1,0 +1,386 @@
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      integer :: eg1, eg2
+
+c "1": UPPER CHANNEL: Power-law model of 0.3% Polyox WSR-301
+c "2": LOWER CHANNEL: Pure water
+
+c ### SIMILITUDE
+c   length, time, and mass scales: sim. units per um, s, kg
+      lsc = 1.0/48.0
+      tsc = 1.0  
+      msc = 9.069454E9    
+c   Reynolds number
+!     nre1 =     
+!     nre2 = 
+
+c ### FLUID MODEL
+c   power law index
+      n1 = 0.7859 
+      n2 = 1.0000     
+c   consistency index (K) or Newtonian viscosity (mu)
+      udiff1 = 1.0966E4
+      udiff2 = 3.8745E2
+c   constant density
+      param(1) = 1.0
+c   constant heat capacity
+      param(7) = 1.0       
+c   concentration of species 1
+      cnc1 = 1.0966E4    
+      cnc2 = 3.8745E2     
+c   diffusion coefficient
+      dfc = 1E-2
+
+c ### GEOMETRY
+c   half-width or radius of branches
+      rr1 = 0.5*58.0*lsc
+      rr2 = 0.5*48.0*lsc
+c   depth (z)
+      hhz = 0.5*60.0*lsc
+c   branching angle: radians
+      th = asin(0.5) ! 30 deg
+c   inlet boundary:  perpendicular to branch: thi = th 
+c                    parallel to y: thi = 0
+      thi = th
+c   y-coordinate on each branch INLET closest to y=0
+      yy1 = 28.86750
+      yy2 = -28.88833
+
+c ### INLET PROFILE        
+c   volumetric flow rates at branch inlets
+      q1 = ((4.2970)*(1.0E9)/3600.0) * (lsc**3)/tsc
+      q2 = ((4.3264)*(1.0E9)/3600.0) * (lsc**3)/tsc
+c   maximum velocities at branch inlets
+      um1 = q1 * ( ((1.0+2.0*n1)/(1.0+n1))**2 ) / (4*rr1*hhz)
+      um2 = q2 * ( ((1.0+2.0*n2)/(1.0+n2))**2 ) / (4*rr2*hhz)
+c   allocate BC arrays for one-time calculation
+      allocate( uxbc  (lx1, ly1, lz1, lelt) )
+      allocate( uybc  (lx1, ly1, lz1, lelt) )
+
+c ### SOLVER FLAGS   
+      param(30) = 1.    ! enable uservp()
+      param(66) = 0.    ! output format (<0 = ASCII)
+      param(67) = 0.    ! restart format 
+!      param(59) = 1.    ! mesh modification
+
+c ### MESH DETAILS
+c   coordinates of merging and splitting corners
+      mcnr(1,:) = (/ 0.000000, 0.000000 /)
+      mcnr(2,:) = (/ 76.38062, 0.000000 /)
+c   merging and splitting points on top and bottom outer boundaries
+      tcnr(1,:) = (/ 0.7218750, 1.194375 /)
+      tcnr(2,:) = (/ 75.74721,  1.288125 /)
+      bcnr(1,:) = (/ 0.7218750,-1.003542 /)
+      bcnr(2,:) = (/ 75.74271, -1.107708 /)
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      integer :: ieg
+      real :: avgk
+      
+      if (ifield.eq.1) then
+      if(istep.le.1) then
+
+          udiff = udiff1
+
+      else
+          avgk = (udiff1 + udiff2)/2
+c         interpolate between models based on passive scalar diffusion 
+          udiffn1 = udiff1*shvis(ix,iy,iz,gllel(ieg))
+          udiffn2 = udiff2
+          plc0 = (udiffn1-udiffn2)*(temp-cnc2)/(cnc1-cnc2)
+c         ensure viscosity is positive
+          if (plc0 .le. -udiffn2) plc0 = -udiffn2 + 10e-6
+          plc=udiffn2+plc0
+          udiff = plc	
+      endif
+      
+      utrans = param(1)
+      else
+        udiff = dfc
+        utrans= param(7)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      
+      real gc
+      real, allocatable, dimension(:,:,:,:) :: gamma, temp	  
+      real :: um, nn, rr, yy, ydir, hh, upro
+
+!     strain rate invariants (nek built-in)
+      common /screv/ ei2(lx1,ly1,lz1,lelt)
+     $             , ei3(lx1,ly1,lz1,lelt)
+
+!     might not be necessary with further debugging
+      if (allocated(shvis)) deallocate(shvis)
+      allocate( gamma  (lx1, ly1, lz1, lelt) )   
+      allocate( shvis  (lx1, ly1, lz1, lelt) )
+         
+      ntot1  = nx1*ny1*nz1*nelv
+      
+      if (istep.eq.0) then
+        do i=1,ntot1
+          x = xm1(i,1,1,1)
+          y = ym1(i,1,1,1)
+          z = zm1(i,1,1,1)
+
+          if (Y.GT.0.0) then
+            um = um1
+            nn = n1
+            rr = rr1
+            yy = yy1
+            ydir = -1.0
+          else
+            um = um2
+            nn = n2
+            rr = rr2
+            yy = yy2
+            ydir = 1.0
+          endif
+
+!         distance from the center of inlet boundary      
+          hh = (y-yy)/cos(thi)
+          hh = abs(abs(hh)-rr)/rr
+          
+          if (hh.gt.0 .and. hh.le.1) then
+            upro = ( 1.0 - hh ** (1.0 + 1.0/nn) )
+            upro = upro * ( 1.0 - (abs(z/hhz)) ** (1.0 + 1.0/nn) )
+          else
+            upro = 0.0
+          endif    
+          
+          uxbc(i,1,1,1) = upro*um*cos(th)
+          uybc(i,1,1,1) = upro*um*ydir*sin(th)
+
+        enddo
+      endif
+
+!     calculate strain rate components (nek built-in)
+      call stnrinv
+
+      do ieg= 1, nelgt
+      if (gllnid(ieg).eq.nid) then
+!      "if this element is the responsibility of this core"
+!      necessary (?) for parallel computation
+        iel = gllel(ieg)
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+            
+!             need shear rate for power-law model
+              gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
+			  
+!             keep track of lowest non-zero shear rate
+              gc = gamma(i,j,k,iel)
+              if (gc.lt.gm .and. gc .gt. 0.0) then
+                gm = gc
+              end if
+              
+            end do
+           end do
+          end do
+          
+          do K = 1, nz1
+           do J = 1, ny1
+            do I = 1, nx1
+              
+!             if shear rate is 0 and n<1:
+!                n .lt. 1: div by 0 in power-law model
+!                n .ge. 1: 0 assigned to udiff (nek rejects)
+              if (gamma(i,j,k,iel) .lt. gm) then
+                gamma(i,j,k,iel) = gm
+              end if
+              
+!             used in uservp to assign udiff
+!             currently only calculated for upper ("1") branch
+              shvis(i,j,k,iel)=(gamma(i,j,k,iel))**(n1-1.0)
+              
+              if (shvis(i,j,k,iel) .le. 0.0) then
+                write(89,*) shvis(i,j,k,iel)
+              end if
+            end do
+           end do
+          end do
+           
+      end if
+      end do
+      
+!     must reset the shear rate tracker
+      gm = 1e38
+      
+      if (mod(istep,iostep).eq.0 .and. istep.ne.0) then 
+         temp = shvis
+         call outpost(gamma,temp,vz,vdiff,t,'shr')
+      else if (istep.eq.0) then
+         call outpost(vx,vy,vz,pr,t,'ini')
+      endif 
+ 
+      deallocate(gamma)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,eg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      integer e, eg
+      
+      e = gllel(eg)
+      
+      if (ifield.eq.1) then
+      
+        ux = uxbc(ix,iy,iz,e)
+        uy = uybc(ix,iy,iz,e)
+        uz = 0.0
+
+      elseif (ifield.eq.2) then
+
+        if (Y.GT.0.0) then
+          temp=cnc1
+        else
+          temp=cnc2
+        endif
+
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      real :: ua1, ua2, lne1, lne2
+      
+      e = gllel(eg)
+            
+      if (ifield.eq.1) then
+        
+        ua1 = um1 * ( (n1 + 1.0) / (2.0*n1 + 1.0) )
+        ua2 = um2 * ( (n2 + 1.0) / (2.0*n2 + 1.0) )
+
+        if (ndim.eq.3) then
+           ua1 = ua1 * ( (n1 + 1.0) / (2.0*n1 + 1.0) )
+           ua2 = ua2 * ( (n2 + 1.0) / (2.0*n2 + 1.0) )
+        endif
+
+        if (y.gt.mcnr(1,1)) then
+           lne1 = tcnr(1,1) - mcnr(1,1)
+           lne1 = lne1 * ( y - mcnr(1,2) ) / ( tcnr(1,2) - mcnr(1,2) )
+           lne1 = lne1 + mcnr(1,1)
+           lne2 = tcnr(2,1) - mcnr(2,1)
+           lne2 = lne2 * ( y - mcnr(2,2) ) / ( tcnr(2,2) - mcnr(2,2) )
+           lne2 = lne2 + mcnr(2,1)
+           if (x.lt.lne1) then
+              ux = ua1*cos(th)
+              uy = -1.0*ua1*sin(th)
+           elseif (x.lt.lne2) then
+              ux = ua1
+              uy = 0.0
+           else
+              ux = ua1*cos(th)
+              uy = ua1*sin(th)
+           endif
+        else
+           lne1 = bcnr(1,1) - mcnr(1,1)
+           lne1 = lne1 * ( y - mcnr(1,2) ) / ( bcnr(1,2) - mcnr(1,2) )
+           lne1 = lne1 + mcnr(1,1)
+           lne2 = bcnr(2,1) - mcnr(2,1)
+           lne2 = lne2 * ( y - mcnr(2,2) ) / ( bcnr(2,2) - mcnr(2,2) )
+           lne2 = lne2 + mcnr(2,1)
+           if (x.lt.lne1) then
+              ux = ua2*cos(th)
+              uy = ua2*sin(th)
+           elseif (x.lt.lne2) then
+              ux = ua2
+              uy = 0.0
+           else
+              ux = ua2*cos(th)
+              uy = -1.0*ua2*sin(th)
+           endif
+        endif
+
+        uz = 0.0
+
+      elseif (ifield.eq.2) then
+
+        if (Y.GT.0.0) then
+          temp=cnc1
+        else
+          temp=cnc2
+        endif
+
+      endif
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      use mldat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
