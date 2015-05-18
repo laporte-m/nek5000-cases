@@ -3,7 +3,7 @@ c-----------------------------------------------------------------------
       use mldat
       include 'SIZE'
       include 'TOTAL'
-
+      
 c   Reynolds number
       nre1 = 100.0   
 c   power law index
@@ -19,6 +19,7 @@ c                    parallel to y: thi = 0
       thi = th
 c   y-coordinate on each branch INLET closest to y=0
       yy1 = -1.0*rr1
+
 
 c ### INLET PROFILE        
 c   volumetric flow rates at branch inlets
@@ -37,9 +38,17 @@ c   (based on generalized Reynolds num, Muzychka & Edge 2008)
       udiff1 = param(1)*( (q1 / (2*rr1)) ** (2.0 - n1) )
       udiff1 = udiff1 * ( (2*2*rr1) ** n1 ) * ( 8.0 ** (1.0 - n1) )
       udiff1 = udiff1 / ( nre1 * ( 1.0 + 1.0/(2.0*n1) ) ** n1 ) 
-      write(*,*) "calculated consistency (K) as: udiff1 =",udiff1
+      write(*,*) "alculated consistency (K) as: udiff1 =",udiff1
 c    viscosity array
       allocate( shvis  (lx1, ly1, lz1, lelt) )
+
+      open(unit=50,file="usrdat2_params.out")
+      write(50,*) "lx1 = ",lx1,", ly1 = ",ly1,", lz1 = ",lz1
+      write(50,*) "lp = ",lp,", lelt = ",lelt
+      write(50,*) "nre = ",nre1,", n1 = ",n1,", udiff1 =",udiff1
+      write(50,*) "rr1 = ",rr1,", th = ",th,", thi =",thi
+      write(50,*) "q1 = ",q1,", um1 = ",um1
+      close(50)
 
 c ### SOLVER FLAGS   
       param(30) = 1.    ! enable uservp()
@@ -51,7 +60,7 @@ c ### STOPPING DETAILS
 !    test every
       teststep = param(15)
 !    error threshold
-      ststerr = um1 * 1.0E-3
+      ststerr = um1 * 1.0E-4
 !    arrays
       allocate( tmpst  (lx1, ly1, lz1, lelt) )
 
@@ -88,7 +97,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
-      real,allocatable,dimension(:,:,:,:) :: gamma, tmpsh, newst 
+      real,allocatable,dimension(:,:,:,:) :: gamma, ststa, tmpsh, newst 
       logical,allocatable,dimension(:,:,:,:) :: ststest
       real :: gc, hh, upro
       integer :: e, q
@@ -178,42 +187,38 @@ c-----------------------------------------------------------------------
 !     must reset the shear rate tracker
       gm = 1e38
       
-      if (nid.eq.1) then
+      
       if (istep.eq.0) then
-         write(*,*) "Here's checkpoint a, nid=", nid
          tmpst = (vx**2 + vy**2)**0.5
-         write(*,*) "Here's checkpoint b, nid=", nid
          call outpost(vx,vy,vz,pr,t,'ini')
-         write(*,*) "Here's checkpoint c, nid=", nid
       else
 !        stopping test
          if (mod(istep,teststep).eq.0) then
-            write(*,*) "Here's checkpoint 1, nid=", nid
             newst = (vx**2 + vy**2)**0.5
-            ststest = (newst - tmpst) .ge. ststerr
-!           send halting signal if entirely below threshold 
+            ststa = newst - tmpst
+            ststest = ststa .ge. ststerr
+!           send halting signal if completely below threshold 
             if (.not. any(ststest)) then
+               if (nid.eq.1) then
                open(unit=41,file="ioinfo",status="replace")
-               write(*,*) "Here's checkpoint 2, nid=", nid
                write(41,*) "-2"
                close(41)
-               write(*,*) "Here's checkpoint 3, nid=", nid
+               endif
             endif
 
             tmpst = newst
          endif
-         write(*,*) "Here's checkpoint 4, nid=", nid
+
          if (mod(istep,iostep).eq.0) then 
             tmpsh = shvis
             write(*,*) "Here's ",nid," with a 'shr' outpost"
             call outpost(gamma,tmpsh,vz,ststa,ststest,'shr')
          endif
-         write(*,*) "Here's checkpoint 5, nid=", nid
-      endif  
+
       endif
-      write(*,*) "Here's checkpoint 6, nid=", nid
+
       deallocate(gamma)
-      write(*,*) "Here's checkpoint 7, nid=", nid
+
       return
       end
 c-----------------------------------------------------------------------
