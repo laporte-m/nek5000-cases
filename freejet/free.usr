@@ -4,10 +4,12 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
+      write(*,*) "nid = ",nid
+
 c   Reynolds number
       nre1 = 100.0   
 c   power law index
-      n1 = 1.0    
+      n1 = 3./2.    
       
 c ### GEOMETRY
 c   half-width or radius of branches
@@ -37,19 +39,15 @@ c   (based on generalized Reynolds num, Muzychka & Edge 2008)
       udiff1 = param(1)*( (q1 / (2*rr1)) ** (2.0 - n1) )
       udiff1 = udiff1 * ( (2*2*rr1) ** n1 ) * ( 8.0 ** (1.0 - n1) )
       udiff1 = udiff1 / ( nre1 * ( 1.0 + 1.0/(2.0*n1) ) ** n1 ) 
-      write(*,*) "alculated consistency (K) as: udiff1 =",udiff1
 c    viscosity array
       allocate( shvis  (lx1, ly1, lz1, lelt) )
 
-      open(unit=50,file="usrdat2_params.out")
-      write(50,*) "lx1 = ",lx1,", ly1 = ",ly1,", lz1 = ",lz1
-      write(50,*) "lp = ",lp,", lelt = ",lelt
-      write(50,*) "nre = ",nre1,", n1 = ",n1,", udiff1 =",udiff1
-      write(50,*) "rr1 = ",rr1,", th = ",th,", thi =",thi
-      write(50,*) "q1 = ",q1,", um1 = ",um1
-      close(50)
-
 c ### OUTLET SPONGE
+!    start (spmin), end (spmax), and maximum consistency (udiffsp)
+      spmax = glmax(xm1, lx1*ly1*lz1*lelt)
+      splen = 0.0
+      spmin = spmax - splen
+      udiffsp = udiff1! * 1.0E4
 
 c ### STOPPING DETAILS
 !    test every
@@ -60,11 +58,17 @@ c ### STOPPING DETAILS
       allocate( tmpst  (lx1, ly1, lz1, lelt) )
 
 c ### MESH DETAILS
-!    start (spmin), end (spmax), and maximum consistency (udiffsp)
-      spmax = maxval(xm1)
-      splen = 2.0
-      spmin = spmax - splen
-      udiffsp = udiff1 * 1E6
+
+c ### OUTPUT
+      open(unit=50,file="usrdat2_params.out")
+      write(50,*) "lx1 = ",lx1,", ly1 = ",ly1,", lz1 = ",lz1
+      write(50,*) "lp = ",lp,", lelt = ",lelt
+      write(50,*) "nre = ",nre1,", n1 = ",n1,", udiff1 =",udiff1
+      write(50,*) "rr1 = ",rr1,", th = ",th,", thi =",thi
+      write(50,*) "q1 = ",q1,", um1 = ",um1
+      write(50,*) "spmax = ",spmax,", splen = ",splen,", spmin =",spmin
+      write(50,*) "udiffsp = ",udiffsp
+      close(50)
 
 c ### SOLVER FLAGS   
       param(30) = 1.    ! enable uservp()
@@ -85,13 +89,10 @@ c-----------------------------------------------------------------------
       integer :: ieg
       
       if (ifield.eq.1) then
-        if(istep.le.1) then
+        if(istep.eq.0) then
           udiff = udiff1
         else
           udiff = shvis(ix,iy,iz,gllel(ieg))
-          if (x.ge.spmin) then
-             udiff = udiff + (udiffsp - udiff1) * (spmin - x)/splen
-          endif
         endif
         utrans = param(1)
       endif
@@ -106,7 +107,7 @@ c-----------------------------------------------------------------------
       
       real,allocatable,dimension(:,:,:,:) :: gamma, ststa, tmpsh, newst 
       logical,allocatable,dimension(:,:,:,:) :: ststest
-      real :: gc, hh, upro
+      real :: gc, hh, upro, t
       integer :: e, q
 
 !     strain rate invariants (nek built-in)
@@ -175,8 +176,7 @@ c-----------------------------------------------------------------------
 !             if shear rate is 0:
 !                n .lt. 1: div by 0 in power-law model
 !                n .ge. 1: 0 assigned to udiff (nek rejects)
-              if (gamma(i,j,k,iel) .lt. gm) then
-              
+              if (gamma(i,j,k,iel) .lt. gm) then             
                 gamma(i,j,k,iel) = gm
               end if
               
@@ -184,6 +184,10 @@ c-----------------------------------------------------------------------
               shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (n1 - 1.0)
               shvis(i,j,k,iel) = udiff1*shvis(i,j,k,iel)
               
+              if (xm1(i,j,k,iel).gt.spmin) then
+               !tmp99 = (udiffsp - udiff1)*(xm1(i,j,k,iel) - spmin)/splen
+               shvis(i,j,k,iel) = shvis(i,j,k,iel) + udiffsp
+              endif
             end do
            end do
           end do
@@ -193,7 +197,6 @@ c-----------------------------------------------------------------------
       
 !     must reset the shear rate tracker
       gm = 1e38
-      
       
       if (istep.eq.0) then
          tmpst = (vx**2 + vy**2)**0.5
@@ -218,7 +221,7 @@ c-----------------------------------------------------------------------
 
          if (mod(istep,iostep).eq.0) then 
             tmpsh = shvis
-            write(*,*) "Here's ",nid," with a 'shr' outpost"
+!            write(*,*) "Here's ",nid," with a 'shr' outpost"
             call outpost(gamma,tmpsh,vz,ststa,ststest,'shr')
          endif
 
@@ -267,6 +270,10 @@ c-----------------------------------------------------------------------
         ux = 0.0
         uy = 0.0
         uz = 0.0
+
+        if (abs(y).lt.rr1) then
+           ux = um1*(1.0-(abs(y)/rr1)**(1.0+1.0/n1))  
+        endif
 
       elseif (ifield.eq.2) then
 
