@@ -1,0 +1,11 @@
+free.rea
+2                      spatial dimension
+1                      number of fields
+#
+#  strainrate-dependent viscosity case
+#
+Box 1
+-20  -10                     		nelx,nely,nelz for Box
+0.0   20.0  1.0                    	x0 x1 ratio 
+-5.0   5.0  1.0                  	y0 y1 ratio 
+v  ,O  ,O  ,O  ,   ,              	bc's; west, east, south, north, (bottom, top)
