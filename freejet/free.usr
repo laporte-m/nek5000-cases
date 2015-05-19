@@ -9,7 +9,7 @@ c-----------------------------------------------------------------------
 c   Reynolds number
       nre1 = 100.0   
 c   power law index
-      n1 = 3./2.    
+      n1 = 1./3.
       
 c ### GEOMETRY
 c   half-width or radius of branches
@@ -271,7 +271,7 @@ c-----------------------------------------------------------------------
         uy = 0.0
         uz = 0.0
 
-        if (abs(y).lt.rr1) then
+        if (n1.gt.1.0 .and. abs(y).lt.rr1) then
            ux = um1*(1.0-(abs(y)/rr1)**(1.0+1.0/n1))  
         endif
 
