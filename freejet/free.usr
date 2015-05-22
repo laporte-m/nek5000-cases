@@ -105,9 +105,11 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
-      real,allocatable,dimension(:,:,:,:) :: gamma, ststa, tmpsh, newst 
+      real,allocatable,dimension(:,:,:,:) :: gamma
+      real, allocatable,dimension(:,:,:) :: tmpg
+      real, allocatable,dimension(:,:,:,:) :: ststa, tmpsh, newst 
       logical,allocatable,dimension(:,:,:,:) :: ststest
-      real :: gc, hh, upro, t, spn
+      real :: gc, hh, upro, t, spk
       integer :: e, q
 
 !     strain rate invariants (nek built-in)
@@ -160,16 +162,29 @@ c-----------------------------------------------------------------------
               gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
 !              write(*,*) "gamma = ",gamma(i,j,k,iel)
 !             keep track of lowest non-zero shear rate
-              gc = gamma(i,j,k,iel)
-              
-              if (gc.lt.gm .and. gc .gt. 0.0) then
-                gm = gc
-              end if
               
             end do
            end do
           end do
+
+      endif
+      enddo
+      
+      !tmpg = gamma
+      !forall(i=1:nx1,j=1:ny1,k=1:nz1,e=1:)
+      !write(*,*) "nelgt = ", 
+      !write(*,*) "glmin(gamma) = ", glmin(gamma)
+      
+      
+      do ieg = 1, nelgt
+      if (gllnid(ieg).eq.nid) then
           
+          
+          !write(*,*) "gm =",gm
+          iel = gllel(ieg)
+          tmpg = gamma(:,:,:,iel)
+          gm = minval(tmpg)
+          write(*,*) "minva
           do K = 1, nz1
            do J = 1, ny1
             do I = 1, nx1
@@ -184,13 +199,14 @@ c-----------------------------------------------------------------------
 !             power law viscosity
  
               shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (n1 - 1.0)
-              shvis(i,j,k,iel) = udiff1*shvis(i,j,k,iel)
-              
+              spk = udiff1
+              !write(*,*) "shvis1 ", shvis(i,j,k,iel)
               if (xm1(i,j,k,iel).gt.spmin) then
                !tmp99 = (udiffsp - udiff1)*(xm1(i,j,k,iel) - spmin)/splen
-               spn = n1 + (0.5 - n1)*((xm1(i,j,k,iel) - spmin)/splen)**2
-               shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (spn - 1.0)
+               spk=spk+(udiffsp - spk)*((xm1(i,j,k,iel)-spmin)/splen)**2
               endif
+              !write(*,*) "shvis2 ", shvis(i,j,k,iel)
+              shvis(i,j,k,iel) = spk*shvis(i,j,k,iel)
             end do
            end do
           end do
