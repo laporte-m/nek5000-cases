@@ -9,18 +9,18 @@ c-----------------------------------------------------------------------
 c   Reynolds number
       nre1 = 100.0   
 c   power law index
-      n1 = 1./3.
-      
+      n1 = 2.0
+
 c ### GEOMETRY
 c   half-width or radius of branches
       rr1 = 0.5
 c   branching angle: radians
-      th = 0.0 ! 30 deg
+      th = 0.0 
 c   inlet boundary:  perpendicular to branch: thi = th 
 c                    parallel to y: thi = 0
       thi = th
 c   y-coordinate on each branch INLET closest to y=0
-      yy1 = -1.0*rr1
+      yy1 = -1.0*rr1      
 
 c ### INLET PROFILE        
 c   volumetric flow rates at branch inlets
@@ -29,7 +29,7 @@ c   maximum velocities at branch inlets
       um1 = ( q1 / (2.0*rr1) ) * ( (2.0*n1 + 1.0) / (n1 + 1.0) )
 c   allocate BC arrays for one-time calculation
       allocate( uxbc  (lx1, ly1, lz1, lelt) )
-      allocate( uybc  (lx1, ly1, lz1, lelt) )
+      allocate( uybc  (lx1, ly1, lz1, lelt) )      
 
 c ### FLUID MODEL
 c   constant density
@@ -41,19 +41,19 @@ c   (based on generalized Reynolds num, Muzychka & Edge 2008)
       udiff1 = udiff1 / ( nre1 * ( 1.0 + 1.0/(2.0*n1) ) ** n1 ) 
 c    viscosity array
       allocate( shvis  (lx1, ly1, lz1, lelt) )
-
+      
 c ### OUTLET SPONGE
 !    start (spmin), end (spmax), and maximum consistency (udiffsp)
       spmax = glmax(xm1, lx1*ly1*lz1*lelt)
-      splen = 0.0
+      splen = 5.0 
       spmin = spmax - splen
-      udiffsp = udiff1! * 1.0E4
+      udiffsp = udiff1 * 1.0E4
 
 c ### STOPPING DETAILS
 !    test every
       teststep = param(15)
 !    error threshold
-      ststerr = um1 * 1.0E-4
+      ststerr = um1 * 1.0E-5
 !    arrays
       allocate( tmpst  (lx1, ly1, lz1, lelt) )
 
@@ -107,7 +107,7 @@ c-----------------------------------------------------------------------
       
       real,allocatable,dimension(:,:,:,:) :: gamma, ststa, tmpsh, newst 
       logical,allocatable,dimension(:,:,:,:) :: ststest
-      real :: gc, hh, upro, t
+      real :: gc, hh, upro, t, spn
       integer :: e, q
 
 !     strain rate invariants (nek built-in)
@@ -158,9 +158,10 @@ c-----------------------------------------------------------------------
 
 !             need shear rate for power-law model
               gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
-              
+!              write(*,*) "gamma = ",gamma(i,j,k,iel)
 !             keep track of lowest non-zero shear rate
               gc = gamma(i,j,k,iel)
+              
               if (gc.lt.gm .and. gc .gt. 0.0) then
                 gm = gc
               end if
@@ -181,12 +182,14 @@ c-----------------------------------------------------------------------
               end if
               
 !             power law viscosity
+ 
               shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (n1 - 1.0)
               shvis(i,j,k,iel) = udiff1*shvis(i,j,k,iel)
               
               if (xm1(i,j,k,iel).gt.spmin) then
                !tmp99 = (udiffsp - udiff1)*(xm1(i,j,k,iel) - spmin)/splen
-               shvis(i,j,k,iel) = shvis(i,j,k,iel) + udiffsp
+               spn = n1 + (0.5 - n1)*((xm1(i,j,k,iel) - spmin)/splen)**2
+               shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (spn - 1.0)
               endif
             end do
            end do
@@ -271,7 +274,7 @@ c-----------------------------------------------------------------------
         uy = 0.0
         uz = 0.0
 
-        if (n1.gt.1.0 .and. abs(y).lt.rr1) then
+        if (n1.ge.1.0 .and. abs(y).lt.rr1) then
            ux = um1*(1.0-(abs(y)/rr1)**(1.0+1.0/n1))  
         endif
 
