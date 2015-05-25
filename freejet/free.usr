@@ -3,8 +3,6 @@ c-----------------------------------------------------------------------
       use mldat
       include 'SIZE'
       include 'TOTAL'
-      
-      write(*,*) "nid = ",nid
 
 c   Reynolds number
       nre1 = 100.0   
@@ -19,7 +17,7 @@ c   branching angle: radians
 c   inlet boundary:  perpendicular to branch: thi = th 
 c                    parallel to y: thi = 0
       thi = th
-c   y-coordinate on each branch INLET closest to y=0
+c   y on each branch inlet closest to y=0
       yy1 = -1.0*rr1      
 
 c ### INLET PROFILE        
@@ -28,8 +26,6 @@ c   volumetric flow rates at branch inlets
 c   maximum velocities at branch inlets
       um1 = ( q1 / (2.0*rr1) ) * ( (2.0*n1 + 1.0) / (n1 + 1.0) )
 c   allocate BC arrays for one-time calculation
-      allocate( uxbc  (lx1, ly1, lz1, lelt) )
-      allocate( uybc  (lx1, ly1, lz1, lelt) )      
 
 c ### FLUID MODEL
 c   constant density
@@ -39,22 +35,24 @@ c   (based on generalized Reynolds num, Muzychka & Edge 2008)
       udiff1 = param(1)*( (q1 / (2*rr1)) ** (2.0 - n1) )
       udiff1 = udiff1 * ( (2*2*rr1) ** n1 ) * ( 8.0 ** (1.0 - n1) )
       udiff1 = udiff1 / ( nre1 * ( 1.0 + 1.0/(2.0*n1) ) ** n1 ) 
-c    viscosity array
-      allocate( shvis  (lx1, ly1, lz1, lelt) )
       
 c ### OUTLET SPONGE
 !    start (spmin), end (spmax), and maximum consistency (udiffsp)
       spmax = glmax(xm1, lx1*ly1*lz1*lelt)
-      splen = 5.0 
+      splen = -1.0 
       spmin = spmax - splen
       udiffsp = udiff1 * 1.0E4
 
-c ### STOPPING DETAILS
+c ### STOPPING
 !    test every
       teststep = param(15)
 !    error threshold
       ststerr = um1 * 1.0E-5
-!    arrays
+ 
+      allocate( shv (lx1, ly1, lz1, lelt) )     
+      allocate( uxbc  (lx1, ly1, lz1, lelt) )
+      allocate( uybc  (lx1, ly1, lz1, lelt) )   
+      allocate( gam (lx1, ly1, lz1, lelt) )     
       allocate( tmpst  (lx1, ly1, lz1, lelt) )
 
 c ### MESH DETAILS
@@ -89,12 +87,12 @@ c-----------------------------------------------------------------------
       integer :: ieg
       
       if (ifield.eq.1) then
-        if(istep.eq.0) then
-          udiff = udiff1
-        else
-          udiff = shvis(ix,iy,iz,gllel(ieg))
-        endif
-        utrans = param(1)
+         if(istep.le.1) then
+            udiff = udiff1
+         else
+            udiff = shv(ix,iy,iz,gllel(ieg))
+         endif
+         utrans = param(1)
       endif
 
       return
@@ -105,21 +103,14 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       
-      real,allocatable,dimension(:,:,:,:) :: gamma
-      real, allocatable,dimension(:,:,:) :: tmpg
-      real, allocatable,dimension(:,:,:,:) :: ststa, tmpsh, newst 
-      logical,allocatable,dimension(:,:,:,:) :: ststest
-      real :: gc, hh, upro, t, spk
+      real,dimension(:,:,:,:),allocatable :: ststa, tmpsh, newst
+      logical,dimension(:,:,:,:),allocatable :: ststest
+      real :: gc, hh, upro, spn, tmpg
       integer :: e, q
 
 !     strain rate invariants (nek built-in)
       common /screv/ ei2(lx1,ly1,lz1,lelt)
      $             , ei3(lx1,ly1,lz1,lelt)
-
-!     might not be necessary with further debugging
-!      if (allocated(shvis)) deallocate(shvis)
-
-      allocate( gamma  (lx1, ly1, lz1, lelt) )   
       q = 1   
       ntot1  = nx1*ny1*nz1*nelv
       
@@ -154,59 +145,43 @@ c-----------------------------------------------------------------------
 !      necessary (?) for parallel computation
         iel = gllel(ieg)
           
-          do K = 1, nz1
-           do J = 1, ny1
-            do I = 1, nx1
+          do k = 1, nz1
+           do j = 1, ny1
+            do i = 1, nx1
 
-!             need shear rate for power-law model
-              gamma(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
-!              write(*,*) "gamma = ",gamma(i,j,k,iel)
-!             keep track of lowest non-zero shear rate
+!             shear rate
+              gam(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
               
             end do
            end do
           end do
 
-      endif
-      enddo
-      
-      !tmpg = gamma
-      !forall(i=1:nx1,j=1:ny1,k=1:nz1,e=1:)
-      !write(*,*) "nelgt = ", 
-      !write(*,*) "glmin(gamma) = ", glmin(gamma)
-      
-      
-      do ieg = 1, nelgt
-      if (gllnid(ieg).eq.nid) then
+          if ( istep.eq.0 .and. n1.le.1.0 ) then
+             gc = minval(gam(:,:,:,iel),gam(:,:,:,iel).gt.0)
+          end if          
           
-          
-          !write(*,*) "gm =",gm
-          iel = gllel(ieg)
-          tmpg = gamma(:,:,:,iel)
-          gm = minval(tmpg)
-          write(*,*) "minva
-          do K = 1, nz1
-           do J = 1, ny1
-            do I = 1, nx1
+          do k = 1, nz1
+           do j = 1, ny1
+            do i = 1, nx1
               
 !             if shear rate is 0:
-!                n .lt. 1: div by 0 in power-law model
-!                n .ge. 1: 0 assigned to udiff (nek rejects)
-              if (gamma(i,j,k,iel) .lt. gm) then             
-                gamma(i,j,k,iel) = gm
+!                n .le. 1: div by 0 in power-law model
+!                n .gt. 1: 0 assigned to udiff (nek rejects)
+              if ( istep.eq.0 .and. n1.le.1.0 ) then        
+                 if ( gam(i,j,k,iel).eq.0 ) gam(i,j,k,iel) = gc
               end if
               
 !             power law viscosity
- 
-              shvis(i,j,k,iel) = (gamma(i,j,k,iel)) ** (n1 - 1.0)
+              shv(i,j,k,iel) = (gam(i,j,k,iel)) ** (n1 - 1.0)
               spk = udiff1
-              !write(*,*) "shvis1 ", shvis(i,j,k,iel)
-              if (xm1(i,j,k,iel).gt.spmin) then
-               !tmp99 = (udiffsp - udiff1)*(xm1(i,j,k,iel) - spmin)/splen
-               spk=spk+(udiffsp - spk)*((xm1(i,j,k,iel)-spmin)/splen)**2
-              endif
-              !write(*,*) "shvis2 ", shvis(i,j,k,iel)
-              shvis(i,j,k,iel) = spk*shvis(i,j,k,iel)
+
+!             sponge
+              if ( xm1(i,j,k,iel).gt.spmin ) then
+               spk=spk+(udiffsp-spk)*((xm1(i,j,k,iel) - spmin)/splen)**2
+              endif              
+              
+              shv(i,j,k,iel) = shv(i,j,k,iel) * spk           
+
             end do
            end do
           end do
@@ -239,14 +214,14 @@ c-----------------------------------------------------------------------
          endif
 
          if (mod(istep,iostep).eq.0) then 
-            tmpsh = shvis
+            tmpsh = shv
 !            write(*,*) "Here's ",nid," with a 'shr' outpost"
-            call outpost(gamma,tmpsh,vz,ststa,ststest,'shr')
+            call outpost(gam,tmpsh,vz,ststa,ststest,'shr')
          endif
 
       endif
 
-      deallocate(gamma)
+      !deallocate(gam)
 
       return
       end

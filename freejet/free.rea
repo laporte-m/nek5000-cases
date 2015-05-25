@@ -16,7 +16,7 @@
    0.00000     p012 DT
    0.00000     p013 IOCOMM
    0.00000     p014 IOTIME
-   100.00000     p015 IOSTEP
+   25.00000     p015 IOSTEP
    0.00000     p016 PSSOLVER: 0=default
    0.00000     p017 
   0.250000E-01 p018 GRID < 0 --> # cells on screen
@@ -25375,8 +25375,7 @@
  W   36043   0.00000       0.00000       0.00000       0.00000       0.00000    
  E   36044   3603.00       2.00000       0.00000       0.00000       0.00000    
   ***** NO THERMAL BOUNDARY CONDITIONS *****
-           1  PRESOLVE/RESTART OPTIONS  *****
-free.restart
+           0  PRESOLVE/RESTART OPTIONS  *****
            7          INITIAL CONDITIONS *****
 C Default                                                                       
 C Default                                                                       

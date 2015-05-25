@@ -37,7 +37,7 @@ PLUGIN_LIST=""
 
 
 # generic compiler flags
-G="-I/media/matt/ops/nek5_cases/freejet/ /media/matt/ops/nek5_cases/freejet/mldat.o -ffpe-trap=invalid,zero,overflow -g"
+G="-I/mnt/ops/nek5_cases/freejet/ /mnt/ops/nek5_cases/freejet/mldat.o -ffpe-trap=invalid,zero,overflow -g"
 # -mcmodel=medium"
 
 # optimization flags

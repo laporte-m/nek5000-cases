@@ -4,7 +4,8 @@
 
        SAVE
        
-       real,dimension(:,:,:,:),allocatable :: shvis, tmpst
+       real,dimension(:,:,:,:),allocatable :: shv, gam
+       real,dimension(:,:,:,:),allocatable :: tmpst
        real,dimension(:,:,:,:),allocatable :: uxbc, uybc
        integer :: teststep
        real :: n1, n2, udiff1, udiff2, cnc1, cnc2, dfc
@@ -12,6 +13,7 @@
        real :: um1, um2
        real :: rr1, rr2, rr3, mid, yy1, yy2
        real :: th, thi 
-       real :: gm = 1e38, ststerr
+       real :: spmax, splen, spmin, udiffsp
+       real :: gm, ststerr
         
       end module mldat    
