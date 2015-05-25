@@ -37,6 +37,8 @@ PLUGIN_LIST=""
 # generic compiler flags
 G="-I$PWD $PWD/mldat.o -ffpe-trap=invalid,zero,overflow -g"
 # -mcmodel=medium"
+# compile mldat module
+$F77 -c mldat.f90
 
 # optimization flags
 #OPT_FLAGS_STD=""
