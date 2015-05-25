@@ -2,8 +2,6 @@
 # Nek5000 build config file
 # (c) 2008,2009,2010 UCHICAGO ARGONNE, LLC
 
-CWD="$PWD"
-
 # source path 
 SOURCE_ROOT="$HOME/nek5_svn/trunk/nek" 
 
@@ -37,7 +35,7 @@ PLUGIN_LIST=""
 
 
 # generic compiler flags
-G="-I/mnt/ops/nek5_cases/freejet/ /mnt/ops/nek5_cases/freejet/mldat.o -ffpe-trap=invalid,zero,overflow -g"
+G="-I$PWD $PWD/mldat.o -ffpe-trap=invalid,zero,overflow -g"
 # -mcmodel=medium"
 
 # optimization flags
