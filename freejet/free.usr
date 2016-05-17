@@ -5,7 +5,7 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
 
 c   Reynolds number
-      nre1 = 100.0   
+      nre1 = 100.0
 c   power law index
       n1 = 2.0
 
@@ -13,33 +13,33 @@ c ### GEOMETRY
 c   half-width or radius of branches
       rr1 = 0.5
 c   branching angle: radians
-      th = 0.0 
-c   inlet boundary:  perpendicular to branch: thi = th 
+      th = 0.0
+c   inlet boundary:  perpendicular to branch: thi = th
 c                    parallel to y: thi = 0
       thi = th
 c   y on each branch inlet closest to y=0
-      yy1 = -1.0*rr1      
+      yy1 = -1.0 * rr1
 
-c ### INLET PROFILE        
+c ### INLET PROFILE
 c   volumetric flow rates at branch inlets
       q1 = 1.0
 c   maximum velocities at branch inlets
-      um1 = ( q1 / (2.0*rr1) ) * ( (2.0*n1 + 1.0) / (n1 + 1.0) )
+      um1 = (q1 / (2.0 * rr1)) * ((1.0 + 2.0 * n1) / (n1 + 1.0))
 c   allocate BC arrays for one-time calculation
 
 c ### FLUID MODEL
 c   constant density
-      param(1) = 1.0   
+      param(1) = 1.0
 c   consistency index (K) or Newtonian viscosity (mu)
 c   (based on generalized Reynolds num, Muzychka & Edge 2008)
-      udiff1 = param(1)*( (q1 / (2*rr1)) ** (2.0 - n1) )
-      udiff1 = udiff1 * ( (2*2*rr1) ** n1 ) * ( 8.0 ** (1.0 - n1) )
-      udiff1 = udiff1 / ( nre1 * ( 1.0 + 1.0/(2.0*n1) ) ** n1 ) 
-      
+      udiff1 = param(1) * ((q1 / (2.0 * rr1)) ** (2.0 - n1))
+      udiff1 = udiff1 * ((2*2.0 * rr1) ** n1) * (8.0 ** (1.0 - n1))
+      udiff1 = udiff1 / (nre1 * (1.0 + 1.0 / (2.0 * n1)) ** n1)
+
 c ### OUTLET SPONGE
 !    start (spmin), end (spmax), and maximum consistency (udiffsp)
       spmax = glmax(xm1, lx1*ly1*lz1*lelt)
-      splen = -1.0 
+      splen = -1.0
       spmin = spmax - splen
       udiffsp = udiff1 * 1.0E4
 
@@ -48,12 +48,12 @@ c ### STOPPING
       teststep = param(15)
 !    error threshold
       ststerr = um1 * 1.0E-5
- 
-      allocate( shv (lx1, ly1, lz1, lelt) )     
+
+      allocate( shv   (lx1, ly1, lz1, lelt) )
       allocate( uxbc  (lx1, ly1, lz1, lelt) )
-      allocate( uybc  (lx1, ly1, lz1, lelt) )   
-      allocate( gam (lx1, ly1, lz1, lelt) )     
-      allocate( tmpst  (lx1, ly1, lz1, lelt) )
+      allocate( uybc  (lx1, ly1, lz1, lelt) )
+      allocate( gam   (lx1, ly1, lz1, lelt) )
+      allocate( tmpst (lx1, ly1, lz1, lelt) )
 
 c ### MESH DETAILS
 
@@ -68,13 +68,13 @@ c ### OUTPUT
       write(50,*) "udiffsp = ",udiffsp
       close(50)
 
-c ### SOLVER FLAGS   
+c ### SOLVER FLAGS
       param(30) = 1.    ! enable uservp()
       param(66) = 0.    ! output format (<0 = ASCII)
-      param(67) = 0.    ! restart format 
+      param(67) = 0.    ! restart format
 !      param(59) = 1.    ! mesh modification
 
-      return 
+      return
       end
 
 c-----------------------------------------------------------------------
@@ -83,9 +83,9 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'NEKUSE'
-      
+
       integer :: ieg
-      
+
       if (ifield.eq.1) then
          if(istep.le.1) then
             udiff = udiff1
@@ -102,7 +102,7 @@ c-----------------------------------------------------------------------
       use mldat
       include 'SIZE'
       include 'TOTAL'
-      
+
       real,dimension(:,:,:,:),allocatable :: ststa, tmpsh, newst
       logical,dimension(:,:,:,:),allocatable :: ststest
       real :: gc, hh, upro, spn, tmpg
@@ -111,27 +111,27 @@ c-----------------------------------------------------------------------
 !     strain rate invariants (nek built-in)
       common /screv/ ei2(lx1,ly1,lz1,lelt)
      $             , ei3(lx1,ly1,lz1,lelt)
-      q = 1   
+      q = 1
       ntot1  = nx1*ny1*nz1*nelv
-      
-      if (istep.eq.0) then
-        do i=1,ntot1
+
+      if (istep .eq. 0) then
+        do i = 1, ntot1
           x = xm1(i,1,1,1)
           y = ym1(i,1,1,1)
           z = zm1(i,1,1,1)
 
-!         distance from the center of inlet boundary      
-          hh = (y-yy1)/cos(thi)
-          hh = abs(abs(hh)-rr1)/rr1
-          
+!         distance from the center of inlet boundary
+          hh = (y - yy1) / cos(thi)
+          hh = abs(abs(hh) - rr1) / rr1
+
           if (hh.ge.0 .and. hh.le.1) then
-            upro = (1.0-hh**(1.0+1.0/n1))  
+            upro = (1.0 - hh ** (1.0 + 1.0 / n1))
           else
             upro = 0.0
-          endif    
-          
-          uxbc(i,1,1,1) = upro*um1*cos(th)
-          uybc(i,1,1,1) = upro*um1*sin(th)
+          endif
+
+          uxbc(i,1,1,1) = upro * um1 * cos(th)
+          uybc(i,1,1,1) = upro * um1 * sin(th)
 
         enddo
       endif
@@ -139,71 +139,71 @@ c-----------------------------------------------------------------------
 !     calculate strain rate components (nek built-in)
       call stnrinv
 
-      do ieg= 1, nelgt
-      if (gllnid(ieg).eq.nid) then
+      do ieg = 1, nelgt
+      if (gllnid(ieg) .eq. nid) then
 !      "if this element is the responsibility of this core"
 !      necessary (?) for parallel computation
         iel = gllel(ieg)
-          
+
           do k = 1, nz1
            do j = 1, ny1
             do i = 1, nx1
 
 !             shear rate
               gam(i,j,k,iel)=(0.5*abs(ei2(i,j,k,iel)))**0.5
-              
+
             end do
            end do
           end do
 
           if ( istep.eq.0 .and. n1.le.1.0 ) then
              gc = minval(gam(:,:,:,iel),gam(:,:,:,iel).gt.0)
-          end if          
-          
+          end if
+
           do k = 1, nz1
            do j = 1, ny1
             do i = 1, nx1
-              
+
 !             if shear rate is 0:
 !                n .le. 1: div by 0 in power-law model
 !                n .gt. 1: 0 assigned to udiff (nek rejects)
-              if ( istep.eq.0 .and. n1.le.1.0 ) then        
-                 if ( gam(i,j,k,iel).eq.0 ) gam(i,j,k,iel) = gc
+              if (istep .eq. 0 .and. n1 .le. 1.0) then
+                 if (gam(i,j,k,iel) .eq. 0) gam(i,j,k,iel) = gc
               end if
-              
+
 !             power law viscosity
-              shv(i,j,k,iel) = (gam(i,j,k,iel)) ** (n1 - 1.0)
+              shv(i,j,k,iel) = gam(i,j,k,iel) ** (n1 - 1.0)
               spk = udiff1
 
 !             sponge
-              if ( xm1(i,j,k,iel).gt.spmin ) then
+              if (xm1(i,j,k,iel) .gt. spmin) then
                spk=spk+(udiffsp-spk)*((xm1(i,j,k,iel) - spmin)/splen)**2
-              endif              
-              
-              shv(i,j,k,iel) = shv(i,j,k,iel) * spk           
+              endif
+
+              shv(i,j,k,iel) = shv(i,j,k,iel) * spk
 
             end do
            end do
           end do
-           
+
       end if
       end do
-      
+
 !     must reset the shear rate tracker
       gm = 1e38
-      
-      if (istep.eq.0) then
-         tmpst = (vx**2 + vy**2)**0.5
+
+      if (istep .eq. 0) then
+         tmpst = (vx ** 2 + vy ** 2) ** 0.5
          call outpost(vx,vy,vz,pr,t,'ini')
       else
 !        stopping test
-         if (mod(istep,teststep).eq.0) then
-            newst = (vx**2 + vy**2)**0.5
+         if (mod(istep,teststep) .eq. 0) then
+            newst = (vx ** 2 + vy ** 2) ** 0.5
             ststa = newst - tmpst
             ststest = ststa .ge. ststerr
-!           send halting signal if completely below threshold 
+!           send halting signal if completely below threshold
             if (.not. any(ststest)) then
-               if (nid.eq.1) then
+               if (nid .eq. 1) then
                open(unit=41,file="ioinfo",status="replace")
                write(41,*) "-2"
                close(41)
@@ -213,7 +213,7 @@ c-----------------------------------------------------------------------
             tmpst = newst
          endif
 
-         if (mod(istep,iostep).eq.0) then 
+         if (mod(istep,iostep) .eq. 0) then
             tmpsh = shv
 !            write(*,*) "Here's ",nid," with a 'shr' outpost"
             call outpost(gam,tmpsh,vz,ststa,ststest,'shr')
@@ -231,18 +231,18 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'NEKUSE'
-            
+
       integer e, eg
-      
+
       e = gllel(eg)
-      
-      if (ifield.eq.1) then
-      
+
+      if (ifield .eq. 1) then
+
         ux = uxbc(ix,iy,iz,e)
         uy = uybc(ix,iy,iz,e)
         uz = 0.0
 
-      elseif (ifield.eq.2) then
+      elseif (ifield .eq. 2) then
 
         temp = 0.0
 
@@ -256,25 +256,25 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'NEKUSE'
-      
+
       e = gllel(eg)
-            
-      if (ifield.eq.1) then
+
+      if (ifield .eq. 1) then
 
         ux = 0.0
         uy = 0.0
         uz = 0.0
 
-        if (n1.ge.1.0 .and. abs(y).lt.rr1) then
-           ux = um1*(1.0-(abs(y)/rr1)**(1.0+1.0/n1))  
+        if (n1 .ge. 1.0 .and. abs(y) .lt. rr1) then
+           ux = um1 * (1.0 - (abs(y) / rr1) ** (1.0 + 1.0 / n1))
         endif
 
-      elseif (ifield.eq.2) then
+      elseif (ifield .eq. 2) then
 
         temp = 0.0
 
       endif
-      
+
       return
       end
 c-----------------------------------------------------------------------
@@ -310,7 +310,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
 c
-      
+
       return
       end
 c-----------------------------------------------------------------------
